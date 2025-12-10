@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rejestr Użytkowników</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📋 Rejestr Użytkowników</h1>
+            <p class="subtitle">Zarejestruj się lub przeglądaj listę użytkowników</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="register">Rejestracja</button>
+            <button class="tab-btn" data-tab="users">Lista Użytkowników</button>
+        </div>
+
+        <!-- Formularz rejestracji -->
+        <div id="register-tab" class="tab-content active">
+            <form id="register-form" class="register-form">
+                <div class="form-group">
+                    <label for="imie">Imię *</label>
+                    <input type="text" id="imie" name="imie" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="nazwisko">Nazwisko *</label>
+                    <input type="text" id="nazwisko" name="nazwisko" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="telefon">Telefon</label>
+                    <input type="tel" id="telefon" name="telefon">
+                </div>
+
+                <div class="form-group">
+                    <label for="haslo">Hasło *</label>
+                    <input type="password" id="haslo" name="haslo" required minlength="6">
+                    <small>Minimum 6 znaków</small>
+                </div>
+
+                <button type="submit" class="btn-primary">Zarejestruj się</button>
+            </form>
+
+            <div id="message" class="message"></div>
+            
+            <div class="login-footer">
+                <p>Masz już konto? <a href="login.html">Zaloguj się</a></p>
+            </div>
+        </div>
+
+        <!-- Lista użytkowników -->
+        <div id="users-tab" class="tab-content">
+            <div class="users-header">
+                <h2>Zarejestrowani Użytkownicy</h2>
+                <button id="refresh-btn" class="btn-secondary">Odśwież</button>
+            </div>
+            <div id="users-list" class="users-list">
+                <div class="loading">Ładowanie...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+

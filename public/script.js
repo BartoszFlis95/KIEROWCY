@@ -1,0 +1,143 @@
+// Obsługa formularza rejestracji
+document.getElementById('register-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const formData = {
+        imie: document.getElementById('imie').value.trim(),
+        nazwisko: document.getElementById('nazwisko').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        telefon: document.getElementById('telefon').value.trim(),
+        haslo: document.getElementById('haslo').value
+    };
+
+    const messageDiv = document.getElementById('message');
+    messageDiv.className = 'message';
+    messageDiv.textContent = '';
+    messageDiv.style.display = 'none';
+
+    try {
+        // Poprawne przypisanie odpowiedzi do zmiennej
+        const response = await fetch('https://www.deneeu.pl/api/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            messageDiv.className = 'message success';
+            messageDiv.textContent = data.message + ' Przekierowywanie do logowania...';
+            messageDiv.style.display = 'block';
+
+            // Wyczyść formularz
+            document.getElementById('register-form').reset();
+
+            // Przekieruj do logowania po 2 sekundach
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2000);
+        } else {
+            messageDiv.className = 'message error';
+            messageDiv.textContent = data.message;
+            messageDiv.style.display = 'block';
+        }
+    } catch (error) {
+        messageDiv.className = 'message error';
+        messageDiv.textContent = 'Wystąpił błąd połączenia z serwerem. Upewnij się, że serwer działa.';
+        messageDiv.style.display = 'block';
+        console.error('Błąd:', error);
+    }
+});
+
+
+// Funkcja do ładowania listy użytkowników
+async function loadUsers() {
+    const usersList = document.getElementById('users-list');
+    usersList.innerHTML = '<div class="loading">Ładowanie...</div>';
+
+    try {
+        const response = await fetch('https://www.deneeu.pl/api/users');
+        const data = await response.json();
+
+        if (data.success) {
+           
+
+            if (data.users.length === 0) {
+                usersList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👥</div>
+                        <h3>Brak zarejestrowanych użytkowników</h3>
+                        <p>Zarejestruj pierwszego użytkownika, aby zobaczyć go tutaj.</p>
+                    </div>
+                `;
+            } else {
+                usersList.innerHTML = data.users.map(user => `
+                    <div class="user-card">
+                        <h3>${escapeHtml(user.imie)} ${escapeHtml(user.nazwisko)}</h3>
+                        <div class="user-info">
+                            <div class="user-info-item">
+                                <label>Email</label>
+                                <span>${escapeHtml(user.email)}</span>
+                            </div>
+                            ${user.telefon ? `
+                            <div class="user-info-item">
+                                <label>Telefon</label>
+                                <span>${escapeHtml(user.telefon)}</span>
+                            </div>
+                            ` : ''}
+                            <div class="user-info-item">
+                                <label>Data rejestracji</label>
+                                <span>${formatDate(user.dataRejestracji)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } else {
+            usersList.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">⚠️</div>
+                    <h3>Błąd podczas ładowania użytkowników</h3>
+                    <p>${data.message || 'Nieznany błąd'}</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        usersList.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">❌</div>
+                <h3>Błąd połączenia</h3>
+                <p>Nie można połączyć się z serwerem. Upewnij się, że serwer działa.</p>
+            </div>
+        `;
+        console.error('Błąd:', error);
+    }
+}
+
+// Funkcja do formatowania daty
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleString('pl-PL', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+// Funkcja do escapowania HTML (zapobieganie XSS)
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Obsługa przycisku odświeżania
+document.getElementById('refresh-btn').addEventListener('click', () => {
+    loadUsers();
+});
+

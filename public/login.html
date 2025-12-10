@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logowanie - Rejestr Użytkowników</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container login-container">
+        <header>
+            <h1>🔐 Logowanie</h1>
+            <p class="subtitle">Zaloguj się do systemu</p>
+        </header>
+
+        <div class="login-content">
+            <form id="login-form" class="login-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label for="haslo">Hasło</label>
+                    <input type="password" id="haslo" name="haslo" required>
+                </div>
+
+                <button type="submit" class="btn-primary">Zaloguj się</button>
+            </form>
+
+            <div id="message" class="message"></div>
+
+            <div class="login-footer">
+                <p>Nie masz konta? <a href="index.html">Zarejestruj się</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="login.js"></script>
+</body>
+</html>
+

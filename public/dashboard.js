@@ -8,12 +8,22 @@ function getToken() {
 
 // Funkcja do sprawdzania autoryzacji
 function checkAuth() {
-    const token = getToken();
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user'));
+
     if (!token) {
+        console.warn('Brak tokena, przekierowanie do logowania');
         window.location.href = 'login.html';
         return false;
     }
-    return true;
+
+    if (!user || user.role !== 'driver') {
+        console.warn('Użytkownik nie jest kierowcą, przekierowanie do logowania');
+        window.location.href = 'login.html';
+        return false;
+    }
+
+    return true; // Wszystko OK
 }
 
 // Zmienna do przechowywania aktualnego użytkownika

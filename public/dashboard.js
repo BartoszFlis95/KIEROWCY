@@ -120,14 +120,11 @@ async function initDashboard() {
     
     // Weryfikuj token z serwerem
     try {
-        const response = await fetchWithAuth(`${API_BASE}/me`);
-        if (response) {
-            const data = await response.json();
-            if (data.success && data.user) {
-                currentUser = data.user;
-                localStorage.setItem('user', JSON.stringify(data.user));
-                document.getElementById('user-name').textContent = `Witaj, ${currentUser.imie} ${currentUser.nazwisko}!`;
-            }
+        const data = await fetchWithAuth(`${API_BASE}/me`);
+        if (data && data.success && data.user) {
+            currentUser = data.user;
+            localStorage.setItem('user', JSON.stringify(data.user));
+            document.getElementById('user-name').textContent = `Witaj, ${currentUser.imie} ${currentUser.nazwisko}!`;
         }
     } catch (error) {
         console.error('Błąd weryfikacji użytkownika:', error);
@@ -140,28 +137,49 @@ async function initDashboard() {
         window.location.href = 'login.html';
     });
     
-    // Obsługa zakładek
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tab = btn.dataset.tab;
-            
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            
-            btn.classList.add('active');
-            document.getElementById(`${tab}-tab`).classList.add('active');
-            
-            // Załaduj dane dla aktywnej zakładki
-            loadTabData(tab);
+    // Obsługa kafelków
+    document.querySelectorAll('.tile').forEach(tile => {
+        tile.addEventListener('click', () => {
+            const section = tile.dataset.section;
+            showSection(section);
         });
     });
+    
+    // Obsługa przycisków powrotu
+    document.getElementById('back-czas-pracy')?.addEventListener('click', () => hideAllSections());
+    document.getElementById('back-urlopy')?.addEventListener('click', () => hideAllSections());
+    document.getElementById('back-plan')?.addEventListener('click', () => hideAllSections());
     
     // Obsługa formularzy
     setupForms();
     
-    // Załaduj dane dla aktywnej zakładki
-    const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
-    loadTabData(activeTab);
+    // Załaduj statystyki dla kafelków
+    loadTileCounts();
+}
+
+// Funkcja do ukrycia wszystkich sekcji i pokazania kafelków
+function hideAllSections() {
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.style.display = 'none';
+    });
+    // Odśwież statystyki
+    loadTileCounts();
+}
+
+// Funkcja do pokazania sekcji
+function showSection(section) {
+    // Ukryj wszystkie sekcje
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.style.display = 'none';
+    });
+    
+    // Pokaż wybraną sekcję
+    const selectedSection = document.getElementById(`${section}-tab`);
+    if (selectedSection) {
+        selectedSection.style.display = 'block';
+        // Załaduj dane dla wybranej sekcji
+        loadTabData(section);
+    }
 }
 
 // Funkcja do ładowania danych zakładki
@@ -176,6 +194,31 @@ function loadTabData(tab) {
         case 'plan':
             loadPlan();
             break;
+    }
+}
+
+// Funkcja do ładowania statystyk dla kafelków
+async function loadTileCounts() {
+    try {
+        // Załaduj statystyki dla planu
+        const planData = await fetchWithAuth(`${API_BASE}/plan`);
+        if (planData && planData.success) {
+            document.getElementById('plan-count').textContent = planData.plan?.length || 0;
+        }
+        
+        // Załaduj statystyki dla urlopów
+        const urlopyData = await fetchWithAuth(`${API_BASE}/urlopy`);
+        if (urlopyData && urlopyData.success) {
+            document.getElementById('urlopy-count').textContent = urlopyData.urlopy?.length || 0;
+        }
+        
+        // Załaduj statystyki dla czasu pracy
+        const czasPracyData = await fetchWithAuth(`${API_BASE}/czas-pracy`);
+        if (czasPracyData && czasPracyData.success) {
+            document.getElementById('czas-pracy-count').textContent = czasPracyData.czasPracy?.length || 0;
+        }
+    } catch (error) {
+        console.error('Błąd ładowania statystyk:', error);
     }
 }
 
@@ -254,20 +297,18 @@ function setupForms() {
 // Funkcje do zapisu danych
 async function saveCzasPracy(data) {
     try {
-        const response = await fetchWithAuth(`${API_BASE}/czas-pracy`, {
+        const result = await fetchWithAuth(`${API_BASE}/czas-pracy`, {
             method: 'POST',
             body: JSON.stringify(data)
         });
         
-        if (response) {
-            const result = await response.json();
-            if (result.success) {
-                document.getElementById('czas-pracy-form-container').style.display = 'none';
-                showMessage('Czas pracy został zapisany pomyślnie!', 'success');
-                loadCzasPracy();
-            } else {
-                showMessage(result.message, 'error');
-            }
+        if (result && result.success) {
+            document.getElementById('czas-pracy-form-container').style.display = 'none';
+            showMessage('Czas pracy został zapisany pomyślnie!', 'success');
+            loadCzasPracy();
+            loadTileCounts();
+        } else {
+            showMessage(result?.message || 'Błąd zapisu', 'error');
         }
     } catch (error) {
         console.error('Błąd:', error);
@@ -277,20 +318,18 @@ async function saveCzasPracy(data) {
 
 async function saveUrlop(data) {
     try {
-        const response = await fetchWithAuth(`${API_BASE}/urlopy`, {
+        const result = await fetchWithAuth(`${API_BASE}/urlopy`, {
             method: 'POST',
             body: JSON.stringify(data)
         });
         
-        if (response) {
-            const result = await response.json();
-            if (result.success) {
-                document.getElementById('urlop-form-container').style.display = 'none';
-                showMessage('Wniosek urlopowy został złożony pomyślnie!', 'success');
-                loadUrlopy();
-            } else {
-                showMessage(result.message, 'error');
-            }
+        if (result && result.success) {
+            document.getElementById('urlop-form-container').style.display = 'none';
+            showMessage('Wniosek urlopowy został złożony pomyślnie!', 'success');
+            loadUrlopy();
+            loadTileCounts();
+        } else {
+            showMessage(result?.message || 'Błąd zapisu', 'error');
         }
     } catch (error) {
         console.error('Błąd:', error);
@@ -300,20 +339,18 @@ async function saveUrlop(data) {
 
 async function savePlan(data) {
     try {
-        const response = await fetchWithAuth(`${API_BASE}/plan`, {
+        const result = await fetchWithAuth(`${API_BASE}/plan`, {
             method: 'POST',
             body: JSON.stringify(data)
         });
         
-        if (response) {
-            const result = await response.json();
-            if (result.success) {
-                document.getElementById('plan-form-container').style.display = 'none';
-                showMessage('Wpis został dodany do planu pomyślnie!', 'success');
-                loadPlan();
-            } else {
-                showMessage(result.message, 'error');
-            }
+        if (result && result.success) {
+            document.getElementById('plan-form-container').style.display = 'none';
+            showMessage('Wpis został dodany do planu pomyślnie!', 'success');
+            loadPlan();
+            loadTileCounts();
+        } else {
+            showMessage(result?.message || 'Błąd zapisu', 'error');
         }
     } catch (error) {
         console.error('Błąd:', error);
@@ -327,23 +364,20 @@ async function loadCzasPracy() {
     listDiv.innerHTML = '<div class="loading">Ładowanie...</div>';
     
     try {
-        const response = await fetchWithAuth(`${API_BASE}/czas-pracy`);
-        if (response) {
-            const data = await response.json();
-            if (data.success) {
-                if (data.czasPracy.length === 0) {
-                    listDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏰</div><p>Brak wpisów czasu pracy</p></div>';
-                } else {
-                    listDiv.innerHTML = data.czasPracy.map(wpis => `
-                        <div class="data-card">
-                            <div class="data-card-header">
-                                <h3>${formatDate(wpis.data)}</h3>
-                                <span class="badge">${wpis.start} - ${wpis.koniec}</span>
-                            </div>
-                            ${wpis.opis ? `<p>${escapeHtml(wpis.opis)}</p>` : ''}
+        const data = await fetchWithAuth(`${API_BASE}/czas-pracy`);
+        if (data && data.success) {
+            if (data.czasPracy.length === 0) {
+                listDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏰</div><p>Brak wpisów czasu pracy</p></div>';
+            } else {
+                listDiv.innerHTML = data.czasPracy.map(wpis => `
+                    <div class="data-card">
+                        <div class="data-card-header">
+                            <h3>${formatDate(wpis.data)}</h3>
+                            <span class="badge">${wpis.start} - ${wpis.koniec}</span>
                         </div>
-                    `).join('');
-                }
+                        ${wpis.opis ? `<p>${escapeHtml(wpis.opis)}</p>` : ''}
+                    </div>
+                `).join('');
             }
         }
     } catch (error) {
@@ -357,24 +391,21 @@ async function loadUrlopy() {
     listDiv.innerHTML = '<div class="loading">Ładowanie...</div>';
     
     try {
-        const response = await fetchWithAuth(`${API_BASE}/urlopy`);
-        if (response) {
-            const data = await response.json();
-            if (data.success) {
-                if (data.urlopy.length === 0) {
-                    listDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏖️</div><p>Brak wniosków urlopowych</p></div>';
-                } else {
-                    listDiv.innerHTML = data.urlopy.map(urlop => `
-                        <div class="data-card">
-                            <div class="data-card-header">
-                                <h3>${formatDate(urlop.dataOd)} - ${formatDate(urlop.dataDo)}</h3>
-                                <span class="badge badge-${urlop.status}">${urlop.status}</span>
-                            </div>
-                            <p><strong>Typ:</strong> ${escapeHtml(urlop.typ)}</p>
-                            ${urlop.opis ? `<p>${escapeHtml(urlop.opis)}</p>` : ''}
+        const data = await fetchWithAuth(`${API_BASE}/urlopy`);
+        if (data && data.success) {
+            if (data.urlopy.length === 0) {
+                listDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏖️</div><p>Brak wniosków urlopowych</p></div>';
+            } else {
+                listDiv.innerHTML = data.urlopy.map(urlop => `
+                    <div class="data-card">
+                        <div class="data-card-header">
+                            <h3>${formatDate(urlop.dataOd)} - ${formatDate(urlop.dataDo)}</h3>
+                            <span class="badge badge-${urlop.status}">${urlop.status}</span>
                         </div>
-                    `).join('');
-                }
+                        <p><strong>Typ:</strong> ${escapeHtml(urlop.typ)}</p>
+                        ${urlop.opis ? `<p>${escapeHtml(urlop.opis)}</p>` : ''}
+                    </div>
+                `).join('');
             }
         }
     } catch (error) {
@@ -388,24 +419,21 @@ async function loadPlan() {
     listDiv.innerHTML = '<div class="loading">Ładowanie...</div>';
     
     try {
-        const response = await fetchWithAuth(`${API_BASE}/plan`);
-        if (response) {
-            const data = await response.json();
-            if (data.success) {
-                if (data.plan.length === 0) {
-                    listDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><p>Brak wpisów w planie</p></div>';
-                } else {
-                    listDiv.innerHTML = data.plan.map(wpis => `
-                        <div class="data-card">
-                            <div class="data-card-header">
-                                <h3>${escapeHtml(wpis.tytul)}</h3>
-                                <span class="badge badge-${wpis.priorytet}">${wpis.priorytet}</span>
-                            </div>
-                            <p><strong>Data:</strong> ${formatDate(wpis.data)}</p>
-                            ${wpis.opis ? `<p>${escapeHtml(wpis.opis)}</p>` : ''}
+        const data = await fetchWithAuth(`${API_BASE}/plan`);
+        if (data && data.success) {
+            if (data.plan.length === 0) {
+                listDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><p>Brak wpisów w planie</p></div>';
+            } else {
+                listDiv.innerHTML = data.plan.map(wpis => `
+                    <div class="data-card">
+                        <div class="data-card-header">
+                            <h3>${escapeHtml(wpis.tytul)}</h3>
+                            <span class="badge badge-${wpis.priorytet}">${wpis.priorytet}</span>
                         </div>
-                    `).join('');
-                }
+                        <p><strong>Data:</strong> ${formatDate(wpis.data)}</p>
+                        ${wpis.opis ? `<p>${escapeHtml(wpis.opis)}</p>` : ''}
+                    </div>
+                `).join('');
             }
         }
     } catch (error) {

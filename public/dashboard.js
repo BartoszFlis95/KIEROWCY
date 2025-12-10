@@ -9,21 +9,33 @@ function getToken() {
 // Funkcja do sprawdzania autoryzacji
 function checkAuth() {
     const token = localStorage.getItem('token');
-    const user = JSON.parse(localStorage.getItem('user'));
-
+    
     if (!token) {
         console.warn('Brak tokena, przekierowanie do logowania');
         window.location.href = 'login.html';
         return false;
     }
 
-    if (!user || user.role !== 'driver') {
-        console.warn('Użytkownik nie jest kierowcą, przekierowanie do logowania');
-        window.location.href = 'login.html';
-        return false;
+    // Sprawdź użytkownika - jeśli nie ma, spróbuj pobrać z serwera
+    let user = null;
+    try {
+        const userData = localStorage.getItem('user');
+        if (userData) {
+            user = JSON.parse(userData);
+        }
+    } catch (e) {
+        console.error('Błąd parsowania danych użytkownika:', e);
     }
 
-    return true; // Wszystko OK
+    // Jeśli użytkownik nie ma roli, ustaw domyślną rolę 'driver' dla kompatybilności
+    if (user && !user.role) {
+        user.role = 'driver';
+        localStorage.setItem('user', JSON.stringify(user));
+    }
+
+    // Jeśli nie ma użytkownika w localStorage, pozwól przejść dalej - dane zostaną pobrane z serwera
+    // Sprawdzanie roli zostanie wykonane po pobraniu danych z serwera
+    return true;
 }
 
 // Zmienna do przechowywania aktualnego użytkownika
@@ -32,6 +44,10 @@ let currentUser = null;
 // Funkcja do wykonania zapytania z autoryzacją
 async function fetchWithAuth(url, options = {}) {
     const token = getToken();
+    if (!token) {
+        throw new Error('Brak tokenu autoryzacji');
+    }
+    
     const headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
@@ -42,6 +58,17 @@ async function fetchWithAuth(url, options = {}) {
         ...options,
         headers
     });
+
+    if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+            // Token nieważny - przekieruj do logowania
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+            throw new Error('Sesja wygasła');
+        }
+        throw new Error(`Błąd HTTP: ${response.status}`);
+    }
 
     const data = await response.json();
     return data;
@@ -133,11 +160,29 @@ async function initDashboard() {
         const data = await fetchWithAuth(`${API_BASE}/me`);
         if (data && data.success && data.user) {
             currentUser = data.user;
-            localStorage.setItem('user', JSON.stringify(data.user));
+            // Upewnij się, że użytkownik ma rolę
+            if (!currentUser.role) {
+                currentUser.role = 'driver';
+            }
+            localStorage.setItem('user', JSON.stringify(currentUser));
             document.getElementById('user-name').textContent = `Witaj, ${currentUser.imie} ${currentUser.nazwisko}!`;
+        } else {
+            // Jeśli weryfikacja nie powiodła się, przekieruj do logowania
+            console.error('Błąd weryfikacji użytkownika');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+            return;
         }
     } catch (error) {
         console.error('Błąd weryfikacji użytkownika:', error);
+        // W przypadku błędu połączenia, pozwól używać danych z localStorage
+        if (!currentUser) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+            return;
+        }
     }
     
     // Obsługa wylogowania

@@ -19,8 +19,8 @@ function checkAuth() {
 
     if (!user || user.role !== 'driver') {
         console.warn('Użytkownik nie jest kierowcą, przekierowanie do logowania');
-        window.location.href = 'login.html';
-        return false;
+        window.location.href = 'dashbord.html';
+        return true;
     }
 
     return true; // Wszystko OK

@@ -9,9 +9,9 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
 
             const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
+            const haslo = document.getElementById('haslo').value;
 
-            if (!email || !password) {
+            if (!email || !haslo) {
                 displayMessage('Proszę wypełnić wszystkie pola', 'error');
                 return;
             }
@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const response = await fetch(`${API_URL}/api/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, haslo: password })
+                    body: JSON.stringify({ email, haslo })
                 });
 
                 const data = await response.json();

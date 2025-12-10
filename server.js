@@ -21,8 +21,15 @@ app.use(express.static('public'));
 async function readUsers() {
   try {
     const data = await fs.readFile(DATA_FILE, 'utf8');
-    return JSON.parse(data || '[]');
+    const users = JSON.parse(data || '[]');
+    console.log(`Odczytano ${users.length} użytkowników z ${DATA_FILE}`);
+    return users;
   } catch (err) {
+    if (err.code === 'ENOENT') {
+      console.log(`Plik ${DATA_FILE} nie istnieje, tworzenie nowego...`);
+      return [];
+    }
+    console.error('Błąd odczytu użytkowników:', err);
     return [];
   }
 }
@@ -30,10 +37,13 @@ async function writeUsers(users) {
   try {
     const dir = path.dirname(DATA_FILE);
     await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(DATA_FILE, JSON.stringify(users, null, 2), 'utf8');
+    const jsonData = JSON.stringify(users, null, 2);
+    await fs.writeFile(DATA_FILE, jsonData, 'utf8');
+    console.log(`Zapisano ${users.length} użytkowników do ${DATA_FILE}`);
     return true;
   } catch (err) {
     console.error('writeUsers error', err);
+    console.error('Ścieżka pliku:', DATA_FILE);
     return false;
   }
 }
@@ -64,11 +74,17 @@ app.post('/api/register', async (req, res) => {
       id: Date.now().toString(),
       imie, nazwisko, email, haslo: hashed, telefon: telefon || '',
       dataRejestracji: new Date().toISOString(),
-      czasPracy: [], urlopy: [], plan: []
+      czasPracy: [], urlopy: [], plan: [],
+      role: 'driver' // Dodajemy rolę kierowcy
     };
     users.push(newUser);
-    await writeUsers(users);
+    const writeResult = await writeUsers(users);
+    if (!writeResult) {
+      console.error('Błąd zapisu użytkownika do pliku');
+      return res.status(500).json({ success: false, message: 'Błąd zapisu danych' });
+    }
     const { haslo: pw, ...userWithoutPassword } = newUser;
+    console.log(`Zarejestrowano użytkownika: ${email}`);
     res.status(201).json({ success: true, message: 'Zarejestrowano', user: userWithoutPassword });
   } catch (err) {
     console.error(err);
@@ -212,9 +228,32 @@ app.get('/api/plan', authenticateToken, async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, message: 'Błąd serwera' }); }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Serwer działa na porcie ${PORT}`);
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`Lokalny dostęp: http://localhost:${PORT}`);
+// Inicjalizacja - sprawdź czy plik users.json istnieje
+async function initializeDataFile() {
+  try {
+    await fs.access(DATA_FILE);
+    console.log(`Plik ${DATA_FILE} istnieje`);
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      console.log(`Tworzenie pliku ${DATA_FILE}...`);
+      const dir = path.dirname(DATA_FILE);
+      await fs.mkdir(dir, { recursive: true });
+      await fs.writeFile(DATA_FILE, '[]', 'utf8');
+      console.log(`Utworzono plik ${DATA_FILE}`);
+    }
   }
+}
+
+// Inicjalizuj przed startem serwera
+initializeDataFile().then(() => {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Serwer działa na porcie ${PORT}`);
+    console.log(`Plik danych: ${DATA_FILE}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`Lokalny dostęp: http://localhost:${PORT}`);
+    }
+  });
+}).catch(err => {
+  console.error('Błąd inicjalizacji:', err);
+  process.exit(1);
 });

@@ -312,17 +312,22 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   try {
     const { email, haslo, login } = req.body;
-    // Użyj login jeśli jest podany, w przeciwnym razie email
-    const loginOrEmail = ((login || email || '').trim()).toLowerCase();
     
-    if (!loginOrEmail || !haslo) {
+    if (!haslo) {
+      return res.status(400).json({ success: false, message: 'Login/Email i hasło wymagane' });
+    }
+    
+    // Użyj login jeśli jest podany, w przeciwnym razie email
+    const loginOrEmail = (login || email || '').trim();
+    
+    if (!loginOrEmail) {
       return res.status(400).json({ success: false, message: 'Login/Email i hasło wymagane' });
     }
 
     const users = await readUsers();
     
     // Znajdź użytkownika (sprawdź zarówno login jak i email) - ignoruj wielkość liter i spacje
-    const input = loginOrEmail.trim().toLowerCase();
+    const input = loginOrEmail.toLowerCase();
     const user = users.find(u =>
       (u.login && u.login.toLowerCase() === input) ||
       (u.email && u.email.toLowerCase() === input)

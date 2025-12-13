@@ -32,7 +32,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
             messageDiv.style.display = 'block';
             document.getElementById('register-form').reset();
             setTimeout(() => {
-                window.location.href = 'login.html';
+                window.location.href = '/login';
             }, 2000);
         } else {
             messageDiv.className = 'message error';

@@ -8,7 +8,7 @@ function getToken() {
 function checkAuth() {
     const token = getToken();
     if (!token) {
-        window.location.href = 'login.html';
+        window.location.href = '/login';
         return false;
     }
     
@@ -43,7 +43,7 @@ let currentUser = null;
 async function fetchWithAuth(url, options = {}) {
     const token = getToken();
     if (!token) {
-        window.location.href = 'login.html';
+        window.location.href = '/login';
         return null;
     }
     
@@ -62,7 +62,7 @@ async function fetchWithAuth(url, options = {}) {
         if (response.status === 401) {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
-            window.location.href = 'login.html';
+            window.location.href = '/login';
             return null;
         }
         

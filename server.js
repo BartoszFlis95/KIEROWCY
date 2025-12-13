@@ -1,16 +1,19 @@
 // server.js
-const API_URL = "https://www.deneeu.pl";
 const express = require('express');
+const multer = require('multer');      // tylko raz
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const fs = require('fs').promises;
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const multer = require('multer');
-const XLSX = require('xlsx');
-const multer = require('multer');
-const XLSX = require('xlsx');
+const XLSX = require('xlsx');          // tylko raz
+
+// Konfiguracja multer
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,11 +24,7 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-// Konfiguracja multer do przetwarzania plików
-const upload = multer({ 
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
-});
+
 
 
 // helper: read/write users

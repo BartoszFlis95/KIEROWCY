@@ -17,11 +17,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             try {
-                const response = await fetch(`${API_URL}/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, haslo })
-                });
+const response = await fetch(`${API_URL}/login`, { // bez dodatkowego /api
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email, haslo })
+});
 
                 const data = await response.json();
 

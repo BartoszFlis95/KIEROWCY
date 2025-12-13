@@ -220,14 +220,18 @@ function generateEmailHTML(pseudonim, dane) {
 
 // Helper: read/write users
 function readUsers() {
-  const path = '/opt/render/project/src/data/users.json';
+  // Sprawdź ścieżkę Render, jeśli nie istnieje, użyj lokalnej
+  const renderPath = '/opt/render/project/src/data/users.json';
+  const localPath = path.join(__dirname, 'data', 'users.json');
+  const filePath = fs.existsSync(renderPath) ? renderPath : localPath;
+  
   try {
-    const users = JSON.parse(fs.readFileSync(path, 'utf-8'));
+    const users = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     console.log('Liczba użytkowników:', users.length);
     return users;
   } catch (err) {
     if (err.code === 'ENOENT') {
-      console.log('Plik nie istnieje, zwracam pustą tablicę');
+      console.log(`Plik nie istnieje w ścieżce: ${filePath}, zwracam pustą tablicę`);
       return [];
     }
     console.error('Błąd odczytu użytkowników:', err);
@@ -237,10 +241,15 @@ function readUsers() {
 
 async function writeUsers(users) {
   try {
-    const dir = path.dirname(DATA_FILE);
-    await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(DATA_FILE, JSON.stringify(users, null, 2), 'utf8');
-    console.log(`✓ Zapisano ${users.length} użytkowników`);
+    // Użyj tej samej logiki co readUsers
+    const renderPath = '/opt/render/project/src/data/users.json';
+    const localPath = path.join(__dirname, 'data', 'users.json');
+    const filePath = fs.existsSync(renderPath) ? renderPath : localPath;
+    
+    const dir = path.dirname(filePath);
+    await fsPromises.mkdir(dir, { recursive: true });
+    await fsPromises.writeFile(filePath, JSON.stringify(users, null, 2), 'utf8');
+    console.log(`✓ Zapisano ${users.length} użytkowników do ${filePath}`);
     return true;
   } catch (err) {
     console.error('✗ Błąd zapisu użytkowników:', err);

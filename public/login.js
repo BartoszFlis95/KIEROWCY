@@ -1,5 +1,8 @@
 // Obsługa formularza logowania
-const API_URL = "https://www.deneeu.pl";
+// Automatyczne wykrywanie środowiska - localhost dla testów lokalnych, deneeu.pl dla produkcji
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? `http://${window.location.hostname}:3000` 
+    : "https://www.deneeu.pl";
 
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.querySelector('form');
@@ -19,10 +22,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
+            // Jeśli login to "admin", użyj pola "login" zamiast "email"
+            const loginData = email === 'admin' 
+                ? { login: 'admin', haslo }
+                : { email, haslo };
+            
             const response = await fetch(`${API_URL}/api/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, haslo })
+                body: JSON.stringify(loginData)
             });
 
             const data = await response.json();
@@ -31,6 +39,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem('token', data.token);
                 if (data.user) {
                     localStorage.setItem('user', JSON.stringify(data.user));
+                    // Sprawdź rolę użytkownika i przekieruj odpowiednio
+                    if (data.user.role === 'admin') {
+                        displayMessage(data.message, 'success');
+                        setTimeout(() => {
+                            window.location.href = 'admin.html';
+                        }, 1500);
+                        return;
+                    }
                 }
                 displayMessage(data.message, 'success');
                 setTimeout(() => {

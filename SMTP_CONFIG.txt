@@ -1,0 +1,34 @@
+===========================================
+KONFIGURACJA SMTP - INSTRUKCJA
+===========================================
+
+✅ Domyślna konfiguracja (home.pl):
+   Email: test@deneeu.pl
+   Hasło: Bumszakalaka32#
+   Host: serwer2524780.home.pl
+   Port: 587
+
+1. Utwórz plik .env w głównym katalogu projektu (C:\Users\fibas\Desktop\KIEROWCY)
+
+2. Skopiuj poniższą zawartość do pliku .env (opcjonalnie - domyślne wartości są już ustawione):
+
+-------------------------------------------
+SMTP_HOST=serwer2524780.home.pl
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=test@deneeu.pl
+SMTP_PASS=Bumszakalaka32#
+-------------------------------------------
+
+3. ✅ Konfiguracja gotowa - domyślne wartości są już ustawione w kodzie!
+
+4. Jeśli chcesz użyć portu 465 (SSL), zmień:
+   SMTP_PORT=465
+   SMTP_SECURE=true
+
+5. Uruchom serwer - system automatycznie użyje domyślnych wartości lub załaduje z pliku .env
+
+===========================================
+UWAGA: Plik .env NIE powinien być commitowany do repozytorium!
+===========================================
+

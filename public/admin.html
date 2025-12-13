@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Administracyjny</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Panel Administracyjny</h1>
+            <div class="user-info">
+                <span id="admin-name">Administrator</span>
+                <button id="logout-btn" class="btn-secondary">Wyloguj</button>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <!-- Planowanie -->
+            <div id="plan-tab" class="tab-content" style="display: block;">
+                <div class="section-header">
+                    <h2>📋 Planowanie</h2>
+                    <button id="upload-excel-btn" class="btn-primary-small">📊 Wgraj Excel</button>
+                    <input type="file" id="excel-file-input" accept=".xlsx,.xls" style="display: none;">
+                </div>
+
+                <!-- Podgląd danych z Excel -->
+                <div id="excel-preview-container" class="form-container" style="display: none;">
+                    <h3>Podgląd danych z pliku Excel</h3>
+                    <div id="excel-preview-table" class="excel-preview"></div>
+                </div>
+
+                <div id="plan-list" class="data-list">
+                    <div class="loading">Ładowanie...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

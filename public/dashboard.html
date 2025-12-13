@@ -17,12 +17,6 @@
         </header>
 
         <div class="dashboard-tiles">
-            <div class="tile" data-section="plan">
-                <div class="tile-icon">📅</div>
-                <h2>Plan</h2>
-                <p>Zarządzaj swoim planem pracy</p>
-                <div class="tile-count" id="plan-count">0</div>
-            </div>
             <div class="tile" data-section="urlopy">
                 <div class="tile-icon">🏖️</div>
                 <h2>Urlopy</h2>
@@ -126,55 +120,22 @@
                 <div class="loading">Ładowanie...</div>
             </div>
         </div>
-
-        <!-- Plan -->
-        <div id="plan-tab" class="tab-content" style="display: none;">
-            <div class="section-header">
-                <div>
-                    <button id="back-plan" class="btn-back">← Powrót</button>
-                    <h2>Plan</h2>
-                </div>
-                <button id="add-plan-btn" class="btn-primary-small">+ Dodaj</button>
-            </div>
-
-            <div id="plan-form-container" class="form-container" style="display: none;">
-                <form id="plan-form" class="data-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="plan-data">Data *</label>
-                            <input type="date" id="plan-data" name="data" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="plan-priorytet">Priorytet</label>
-                            <select id="plan-priorytet" name="priorytet">
-                                <option value="niski">Niski</option>
-                                <option value="normalny" selected>Normalny</option>
-                                <option value="wysoki">Wysoki</option>
-                                <option value="pilny">Pilny</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="plan-tytul">Tytuł *</label>
-                        <input type="text" id="plan-tytul" name="tytul" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="plan-opis">Opis</label>
-                        <textarea id="plan-opis" name="opis" rows="4"></textarea>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn-primary">Zapisz</button>
-                        <button type="button" class="btn-secondary" id="cancel-plan">Anuluj</button>
-                    </div>
-                </form>
-            </div>
-
-            <div id="plan-list" class="data-list">
-                <div class="loading">Ładowanie...</div>
-            </div>
-        </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        // Sprawdź czy XLSX został załadowany
+        window.addEventListener('load', function() {
+            if (typeof XLSX === 'undefined') {
+                console.error('BŁĄD: Biblioteka XLSX nie została załadowana!');
+                console.error('XLSX type:', typeof XLSX);
+            } else {
+                console.log('✓ Biblioteka XLSX została załadowana pomyślnie');
+                console.log('XLSX type:', typeof XLSX);
+                console.log('XLSX version:', XLSX.version || 'nieznana');
+            }
+        });
+    </script>
     <script src="dashboard.js"></script>
 </body>
 </html>

@@ -1,0 +1,51 @@
+═══════════════════════════════════════════════════════════════
+KONFIGURACJA SERWERA - DENEEU.PL
+═══════════════════════════════════════════════════════════════
+
+📧 KONFIGURACJA SERWERA POCZTOWEGO (test@deneeu.pl)
+═══════════════════════════════════════════════════════════════
+
+Serwer SMTP:
+  Host: serwer2524780.home.pl
+  Port: 587 (bez SSL) lub 465 (z SSL)
+  Secure: false (dla 587) lub true (dla 465)
+
+Serwer POP3:
+  Host: serwer2524780.home.pl
+  Port: 110 (bez SSL) lub 995 (z SSL)
+
+Serwer IMAP:
+  Host: serwer2524780.home.pl
+  Port: 143 (bez SSL) lub 993 (z SSL)
+
+Konto email:
+  Email: test@deneeu.pl
+  Hasło: Bumszakalaka32#
+
+
+📁 KONFIGURACJA FTP
+═══════════════════════════════════════════════════════════════
+
+Host FTP: serwer2524780.home.pl
+Login FTP: serwer2524780
+Port: 21 (bez SSL) lub 990 (z SSL)
+
+
+🔧 ZMIENNE ŚRODOWISKOWE
+═══════════════════════════════════════════════════════════════
+
+SMTP_HOST=serwer2524780.home.pl
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=test@deneeu.pl
+SMTP_PASS=Bumszakalaka32#
+
+
+📝 UWAGI
+═══════════════════════════════════════════════════════════════
+
+- Port 587 używa TLS (secure: false)
+- Port 465 używa SSL (secure: true)
+- Domyślnie używany jest port 587 z secure: false
+- Aby użyć portu 465, ustaw: SMTP_PORT=465 i SMTP_SECURE=true
+

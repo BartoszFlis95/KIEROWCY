@@ -1,5 +1,8 @@
 // Obsługa formularza rejestracji
-const API_URL = "https://www.deneeu.pl";
+// Automatyczne wykrywanie środowiska - localhost dla testów lokalnych, deneeu.pl dla produkcji
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? `http://${window.location.hostname}:3000` 
+    : "https://www.deneeu.pl";
 
 document.getElementById('register-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -132,7 +135,33 @@ function escapeHtml(text) {
 }
 
 // Obsługa przycisku odświeżania
-document.getElementById('refresh-btn').addEventListener('click', () => {
+document.getElementById('refresh-btn')?.addEventListener('click', () => {
     loadUsers();
+});
+
+// Obsługa zakładek
+document.addEventListener('DOMContentLoaded', () => {
+    // Załaduj użytkowników przy starcie
+    loadUsers();
+    
+    // Obsługa przełączania zakładek
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.dataset.tab;
+            
+            // Usuń aktywną klasę ze wszystkich przycisków i zawartości
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            // Dodaj aktywną klasę do klikniętego przycisku i odpowiedniej zawartości
+            btn.classList.add('active');
+            document.getElementById(`${tab}-tab`)?.classList.add('active');
+            
+            // Jeśli kliknięto zakładkę użytkowników, odśwież listę
+            if (tab === 'users') {
+                loadUsers();
+            }
+        });
+    });
 });
 

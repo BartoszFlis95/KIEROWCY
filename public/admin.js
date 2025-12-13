@@ -534,9 +534,7 @@ async function sendEmailToDrivers(data) {
             return;
         }
         
-        const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? `http://${window.location.hostname}:3000/api/send-email`
-            : 'https://www.deneeu.pl/api/send-email';
+        const apiUrl = 'https://www.deneeu.pl/api/send-email';
         
         console.log('[SEND EMAIL] Endpoint:', apiUrl);
         

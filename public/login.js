@@ -1,8 +1,5 @@
 // Obsługa formularza logowania
-// Automatyczne wykrywanie środowiska - localhost dla testów lokalnych, deneeu.pl dla produkcji
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-    ? `http://${window.location.hostname}:3000` 
-    : "https://www.deneeu.pl";
+const API_URL = 'https://www.deneeu.pl';
 
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.querySelector('form');

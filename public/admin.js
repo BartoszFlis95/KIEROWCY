@@ -1,8 +1,5 @@
 // Stała z bazowym URL API
-// Automatyczne wykrywanie środowiska - localhost dla testów lokalnych, deneeu.pl dla produkcji
-const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-    ? `http://${window.location.hostname}:3000` 
-    : "https://www.deneeu.pl") + "/api";
+const API_BASE = 'https://www.deneeu.pl/api';
 
 // Funkcja do pobrania tokenu z localStorage
 function getToken() {

@@ -105,12 +105,6 @@ app.post('/api/login', async (req, res) => {
     const ok = await bcrypt.compare(haslo, user.haslo);
     if (!ok) return res.status(401).json({ success: false, message: 'Nieprawidłowy email lub hasło' });
 
-    // Upewnij się, że użytkownik ma rolę (dla kompatybilności ze starymi użytkownikami)
-    if (!user.role) {
-      user.role = 'driver';
-      await writeUsers(users);
-    }
-
     const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
     const { haslo: pw, ...userWithoutPassword } = user;
     res.json({ success: true, message: 'Zalogowano', token, user: userWithoutPassword });

@@ -17,7 +17,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
 
     try {
         // Poprawne przypisanie odpowiedzi do zmiennej
-        const response = await fetch('https://www.deneeu.pl/api/register', {
+        const response = await fetch('https://kierowcy2.onrender.com/api/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -59,7 +59,7 @@ async function loadUsers() {
     usersList.innerHTML = '<div class="loading">Ładowanie...</div>';
 
     try {
-        const response = await fetch('https://www.deneeu.pl/api/users');
+        const response = await fetch('https://kierowcy2.onrender.com/api/users');
         const data = await response.json();
 
         if (data.success) {

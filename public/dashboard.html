@@ -44,7 +44,26 @@
                     <button id="back-czas-pracy" class="btn-back">← Powrót</button>
                     <h2>Czas Pracy</h2>
                 </div>
-                <button id="add-czas-pracy-btn" class="btn-primary-small">+ Dodaj</button>
+                <div class="section-actions">
+                    <label for="excel-upload" class="btn-excel">
+                        📊 Wgraj Excel
+                        <input type="file" id="excel-upload" accept=".xlsx,.xls" style="display: none;">
+                    </label>
+                    <button id="add-czas-pracy-btn" class="btn-primary-small">+ Dodaj</button>
+                </div>
+            </div>
+
+            <!-- Podgląd wgranego Excel -->
+            <div id="excel-preview-container" class="excel-preview-container" style="display: none;">
+                <div class="excel-preview-header">
+                    <h3>📊 Podgląd danych z Excel</h3>
+                    <button id="close-excel-preview" class="btn-close">×</button>
+                </div>
+                <div id="excel-preview-content" class="excel-preview-content"></div>
+                <div class="excel-preview-actions">
+                    <button id="import-excel-data" class="btn-primary">Importuj dane</button>
+                    <button id="cancel-excel-import" class="btn-secondary">Anuluj</button>
+                </div>
             </div>
 
             <div id="czas-pracy-form-container" class="form-container" style="display: none;">
@@ -175,6 +194,8 @@
         </div>
     </div>
 
+    <!-- Biblioteka do parsowania Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="dashboard.js"></script>
 </body>
 </html>

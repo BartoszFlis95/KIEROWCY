@@ -9,33 +9,21 @@ function getToken() {
 // Funkcja do sprawdzania autoryzacji
 function checkAuth() {
     const token = localStorage.getItem('token');
-    
+    const user = JSON.parse(localStorage.getItem('user'));
+
     if (!token) {
         console.warn('Brak tokena, przekierowanie do logowania');
         window.location.href = 'login.html';
         return false;
     }
 
-    // Sprawdź użytkownika - jeśli nie ma, spróbuj pobrać z serwera
-    let user = null;
-    try {
-        const userData = localStorage.getItem('user');
-        if (userData) {
-            user = JSON.parse(userData);
-        }
-    } catch (e) {
-        console.error('Błąd parsowania danych użytkownika:', e);
+    if (!user || user.role !== 'driver') {
+        console.warn('Użytkownik nie jest kierowcą, przekierowanie do logowania');
+        window.location.href = 'login.html';
+        return false;
     }
 
-    // Jeśli użytkownik nie ma roli, ustaw domyślną rolę 'driver' dla kompatybilności
-    if (user && !user.role) {
-        user.role = 'driver';
-        localStorage.setItem('user', JSON.stringify(user));
-    }
-
-    // Jeśli nie ma użytkownika w localStorage, pozwól przejść dalej - dane zostaną pobrane z serwera
-    // Sprawdzanie roli zostanie wykonane po pobraniu danych z serwera
-    return true;
+    return true; // Wszystko OK
 }
 
 // Zmienna do przechowywania aktualnego użytkownika
@@ -44,10 +32,6 @@ let currentUser = null;
 // Funkcja do wykonania zapytania z autoryzacją
 async function fetchWithAuth(url, options = {}) {
     const token = getToken();
-    if (!token) {
-        throw new Error('Brak tokenu autoryzacji');
-    }
-    
     const headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
@@ -58,17 +42,6 @@ async function fetchWithAuth(url, options = {}) {
         ...options,
         headers
     });
-
-    if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-            // Token nieważny - przekieruj do logowania
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = 'login.html';
-            throw new Error('Sesja wygasła');
-        }
-        throw new Error(`Błąd HTTP: ${response.status}`);
-    }
 
     const data = await response.json();
     return data;
@@ -160,29 +133,11 @@ async function initDashboard() {
         const data = await fetchWithAuth(`${API_BASE}/me`);
         if (data && data.success && data.user) {
             currentUser = data.user;
-            // Upewnij się, że użytkownik ma rolę
-            if (!currentUser.role) {
-                currentUser.role = 'driver';
-            }
-            localStorage.setItem('user', JSON.stringify(currentUser));
+            localStorage.setItem('user', JSON.stringify(data.user));
             document.getElementById('user-name').textContent = `Witaj, ${currentUser.imie} ${currentUser.nazwisko}!`;
-        } else {
-            // Jeśli weryfikacja nie powiodła się, przekieruj do logowania
-            console.error('Błąd weryfikacji użytkownika');
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = 'login.html';
-            return;
         }
     } catch (error) {
         console.error('Błąd weryfikacji użytkownika:', error);
-        // W przypadku błędu połączenia, pozwól używać danych z localStorage
-        if (!currentUser) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = 'login.html';
-            return;
-        }
     }
     
     // Obsługa wylogowania
@@ -207,6 +162,9 @@ async function initDashboard() {
     
     // Obsługa formularzy
     setupForms();
+    
+    // Obsługa wgrywania Excel
+    setupExcelUpload();
     
     // Załaduj statystyki dla kafelków
     loadTileCounts();
@@ -495,6 +453,244 @@ async function loadPlan() {
         console.error('Błąd:', error);
         listDiv.innerHTML = '<div class="empty-state"><p>Błąd podczas ładowania danych</p></div>';
     }
+}
+
+// Obsługa wgrywania plików Excel
+let excelData = null;
+
+function setupExcelUpload() {
+    const fileInput = document.getElementById('excel-upload');
+    const previewContainer = document.getElementById('excel-preview-container');
+    const closeBtn = document.getElementById('close-excel-preview');
+    const cancelBtn = document.getElementById('cancel-excel-import');
+    const importBtn = document.getElementById('import-excel-data');
+    
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        if (!file.name.match(/\.(xlsx|xls)$/)) {
+            showMessage('Proszę wybrać plik Excel (.xlsx lub .xls)', 'error');
+            return;
+        }
+        
+        try {
+            showMessage('Przetwarzanie pliku Excel...', 'success');
+            const data = await readExcelFile(file);
+            excelData = data;
+            displayExcelPreview(data);
+            previewContainer.style.display = 'block';
+        } catch (error) {
+            console.error('Błąd odczytu pliku Excel:', error);
+            showMessage('Błąd podczas odczytu pliku Excel. Sprawdź format pliku.', 'error');
+        }
+    });
+    
+    closeBtn?.addEventListener('click', () => {
+        previewContainer.style.display = 'none';
+        fileInput.value = '';
+        excelData = null;
+    });
+    
+    cancelBtn?.addEventListener('click', () => {
+        previewContainer.style.display = 'none';
+        fileInput.value = '';
+        excelData = null;
+    });
+    
+    importBtn?.addEventListener('click', async () => {
+        if (!excelData || excelData.length === 0) {
+            showMessage('Brak danych do importu', 'error');
+            return;
+        }
+        
+        await importExcelData(excelData);
+    });
+}
+
+// Funkcja do odczytu pliku Excel
+function readExcelFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                // Pobierz pierwszą kartę
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                
+                // Konwertuj na strukturę danych
+                const headers = jsonData[0] || [];
+                const rows = jsonData.slice(1).filter(row => row.some(cell => cell !== undefined && cell !== ''));
+                
+                const parsedData = rows.map(row => {
+                    const obj = {};
+                    headers.forEach((header, index) => {
+                        if (header) {
+                            obj[header] = row[index] || '';
+                        }
+                    });
+                    return obj;
+                });
+                
+                resolve(parsedData);
+            } catch (error) {
+                reject(error);
+            }
+        };
+        
+        reader.onerror = (error) => reject(error);
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+// Funkcja do wyświetlania podglądu danych Excel
+function displayExcelPreview(data) {
+    const previewContent = document.getElementById('excel-preview-content');
+    
+    if (!data || data.length === 0) {
+        previewContent.innerHTML = '<p class="empty-state">Brak danych w pliku</p>';
+        return;
+    }
+    
+    // Pobierz nagłówki z pierwszego wiersza
+    const headers = Object.keys(data[0]);
+    
+    let html = `
+        <div class="excel-info">
+            <p><strong>Znaleziono ${data.length} wierszy danych</strong></p>
+        </div>
+        <div class="excel-table-wrapper">
+            <table class="excel-table">
+                <thead>
+                    <tr>
+                        ${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${data.slice(0, 10).map(row => `
+                        <tr>
+                            ${headers.map(h => `<td>${escapeHtml(row[h] || '')}</td>`).join('')}
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            ${data.length > 10 ? `<p class="excel-more">... i ${data.length - 10} więcej wierszy</p>` : ''}
+        </div>
+    `;
+    
+    previewContent.innerHTML = html;
+}
+
+// Funkcja do importu danych z Excel
+async function importExcelData(data) {
+    const previewContainer = document.getElementById('excel-preview-container');
+    let successCount = 0;
+    let errorCount = 0;
+    
+    showMessage('Importowanie danych...', 'success');
+    
+    for (const row of data) {
+        try {
+            // Mapowanie kolumn Excel na format API
+            // Zakładamy format: Data, Start, Koniec, Opis
+            const formData = {
+                data: formatExcelDate(row['Data'] || row['data'] || row['DATA']),
+                start: formatExcelTime(row['Start'] || row['start'] || row['Rozpoczęcie'] || row['rozpoczęcie']),
+                koniec: formatExcelTime(row['Koniec'] || row['koniec'] || row['Zakończenie'] || row['zakończenie']),
+                opis: row['Opis'] || row['opis'] || row['Uwagi'] || row['uwagi'] || ''
+            };
+            
+            // Walidacja
+            if (!formData.data || !formData.start || !formData.koniec) {
+                errorCount++;
+                continue;
+            }
+            
+            const result = await fetchWithAuth(`${API_BASE}/czas-pracy`, {
+                method: 'POST',
+                body: JSON.stringify(formData)
+            });
+            
+            if (result && result.success) {
+                successCount++;
+            } else {
+                errorCount++;
+            }
+        } catch (error) {
+            console.error('Błąd importu wiersza:', error);
+            errorCount++;
+        }
+    }
+    
+    previewContainer.style.display = 'none';
+    document.getElementById('excel-upload').value = '';
+    excelData = null;
+    
+    showMessage(`Zaimportowano ${successCount} wpisów${errorCount > 0 ? `, ${errorCount} błędów` : ''}`, successCount > 0 ? 'success' : 'error');
+    loadCzasPracy();
+    loadTileCounts();
+}
+
+// Funkcja do formatowania daty z Excel
+function formatExcelDate(value) {
+    if (!value) return '';
+    
+    // Jeśli to już string w formacie YYYY-MM-DD
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return value;
+    }
+    
+    // Jeśli to liczba (Excel date serial)
+    if (typeof value === 'number') {
+        const excelEpoch = new Date(1899, 11, 30);
+        const date = new Date(excelEpoch.getTime() + value * 24 * 60 * 60 * 1000);
+        return date.toISOString().split('T')[0];
+    }
+    
+    // Jeśli to obiekt Date
+    if (value instanceof Date) {
+        return value.toISOString().split('T')[0];
+    }
+    
+    // Spróbuj sparsować jako datę
+    const date = new Date(value);
+    if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0];
+    }
+    
+    return '';
+}
+
+// Funkcja do formatowania czasu z Excel
+function formatExcelTime(value) {
+    if (!value) return '';
+    
+    // Jeśli to już string w formacie HH:MM
+    if (typeof value === 'string' && /^\d{2}:\d{2}$/.test(value)) {
+        return value;
+    }
+    
+    // Jeśli to liczba (Excel time serial)
+    if (typeof value === 'number') {
+        const totalSeconds = Math.floor(value * 24 * 60 * 60);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+    
+    // Spróbuj sparsować jako czas
+    if (typeof value === 'string') {
+        const timeMatch = value.match(/(\d{1,2}):(\d{2})/);
+        if (timeMatch) {
+            return `${String(timeMatch[1]).padStart(2, '0')}:${timeMatch[2]}`;
+        }
+    }
+    
+    return value.toString();
 }
 
 // Uruchom dashboard po załadowaniu strony

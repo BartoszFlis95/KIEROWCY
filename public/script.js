@@ -1,4 +1,6 @@
 // Obsługa formularza rejestracji
+const API_URL = "https://www.deneeu.pl";
+
 document.getElementById('register-form').addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -16,12 +18,9 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     messageDiv.style.display = 'none';
 
     try {
-        // Poprawne przypisanie odpowiedzi do zmiennej
-        const response = await fetch('https://kierowcy2.onrender.com/api/register', {
+        const response = await fetch(`${API_URL}/api/register`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         });
 
@@ -31,11 +30,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
             messageDiv.className = 'message success';
             messageDiv.textContent = data.message + ' Przekierowywanie do logowania...';
             messageDiv.style.display = 'block';
-
-            // Wyczyść formularz
             document.getElementById('register-form').reset();
-
-            // Przekieruj do logowania po 2 sekundach
             setTimeout(() => {
                 window.location.href = 'login.html';
             }, 2000);
@@ -46,7 +41,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
         }
     } catch (error) {
         messageDiv.className = 'message error';
-        messageDiv.textContent = 'Wystąpił błąd połączenia z serwerem. Upewnij się, że serwer działa.';
+        messageDiv.textContent = 'Wystąpił błąd połączenia z serwerem.';
         messageDiv.style.display = 'block';
         console.error('Błąd:', error);
     }
@@ -59,7 +54,7 @@ async function loadUsers() {
     usersList.innerHTML = '<div class="loading">Ładowanie...</div>';
 
     try {
-        const response = await fetch('https://kierowcy2.onrender.com/api/users');
+        const response = await fetch(`${API_URL}/api/users`);
         const data = await response.json();
 
         if (data.success) {

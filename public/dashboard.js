@@ -1,8 +1,7 @@
 // Stała z bazowym URL API
 const API_BASE = "https://www.deneeu.pl/api";
- // <- backend na Render
 
-// Funkcja do pobrania tokenu z localStorage
+// Funkcja do pobrania tokenu z localStorage (przykład)
 function getToken() {
     return localStorage.getItem('token');
 }
@@ -10,21 +9,25 @@ function getToken() {
 // Funkcja do sprawdzania autoryzacji
 function checkAuth() {
     const token = localStorage.getItem('token');
-    const user = JSON.parse(localStorage.getItem('user'));
-
     if (!token) {
-        console.warn('Brak tokena, przekierowanie do logowania');
         window.location.href = 'login.html';
         return false;
     }
-
-    if (!user || user.role !== 'driver') {
-        console.warn('Użytkownik nie jest kierowcą, przekierowanie do logowania');
-        window.location.href = 'login.html';
-        return false;
+    
+    try {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            const user = JSON.parse(userStr);
+            if (user.role !== 'driver') {
+                window.location.href = 'login.html';
+                return false;
+            }
+        }
+    } catch (e) {
+        console.error('Błąd parsowania użytkownika:', e);
     }
-
-    return true; // Wszystko OK
+    
+    return true;
 }
 
 // Zmienna do przechowywania aktualnego użytkownika
@@ -292,20 +295,6 @@ function setupForms() {
         document.getElementById('plan-form-container').style.display = 'none';
     });
     
-    // Obsługa wgrywania Excel
-    document.getElementById('upload-excel-btn').addEventListener('click', () => {
-        document.getElementById('excel-file-input').click();
-    });
-    
-    document.getElementById('excel-file-input').addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        await handleExcelUpload(file);
-        // Reset input
-        e.target.value = '';
-    });
-    
     document.getElementById('plan-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = {
@@ -464,93 +453,6 @@ async function loadPlan() {
     } catch (error) {
         console.error('Błąd:', error);
         listDiv.innerHTML = '<div class="empty-state"><p>Błąd podczas ładowania danych</p></div>';
-    }
-}
-
-// Funkcja do obsługi wgrywania pliku Excel
-async function handleExcelUpload(file) {
-    try {
-        showMessage('Przetwarzanie pliku Excel...', 'success');
-        
-        const data = await file.arrayBuffer();
-        const workbook = XLSX.read(data, { type: 'array' });
-        
-        // Pobierz pierwszą kartę
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-        
-        if (jsonData.length === 0) {
-            showMessage('Plik Excel jest pusty', 'error');
-            return;
-        }
-        
-        // Przetwórz dane z Excel
-        let imported = 0;
-        let errors = 0;
-        
-        for (const row of jsonData) {
-            try {
-                // Oczekiwane kolumny: Data, Tytuł, Opis, Priorytet
-                // Obsługa różnych nazw kolumn
-                const dataValue = row['Data'] || row['data'] || row['DATA'] || '';
-                const tytul = row['Tytuł'] || row['tytul'] || row['TYTUŁ'] || row['Tytuł'] || '';
-                const opis = row['Opis'] || row['opis'] || row['OPIS'] || row['Opis'] || '';
-                const priorytet = row['Priorytet'] || row['priorytet'] || row['PRIORYTET'] || row['Priorytet'] || 'normalny';
-                
-                if (!dataValue || !tytul) {
-                    errors++;
-                    continue;
-                }
-                
-                // Konwersja daty (obsługa różnych formatów)
-                let formattedDate = dataValue;
-                if (typeof dataValue === 'number') {
-                    // Excel przechowuje daty jako numery
-                    const excelDate = XLSX.SSF.parse_date_code(dataValue);
-                    formattedDate = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`;
-                } else if (dataValue instanceof Date) {
-                    formattedDate = dataValue.toISOString().split('T')[0];
-                } else if (typeof dataValue === 'string') {
-                    // Spróbuj sparsować datę
-                    const date = new Date(dataValue);
-                    if (!isNaN(date.getTime())) {
-                        formattedDate = date.toISOString().split('T')[0];
-                    }
-                }
-                
-                const planData = {
-                    data: formattedDate,
-                    tytul: String(tytul),
-                    opis: String(opis || ''),
-                    priorytet: String(priorytet || 'normalny')
-                };
-                
-                const result = await fetchWithAuth(`${API_BASE}/plan`, {
-                    method: 'POST',
-                    body: JSON.stringify(planData)
-                });
-                
-                if (result && result.success) {
-                    imported++;
-                } else {
-                    errors++;
-                }
-            } catch (err) {
-                console.error('Błąd importu wiersza:', err);
-                errors++;
-            }
-        }
-        
-        if (imported > 0) {
-            showMessage(`Zaimportowano ${imported} wpisów${errors > 0 ? `, ${errors} błędów` : ''}`, 'success');
-            loadPlan();
-            loadTileCounts();
-        } else {
-            showMessage(`Nie udało się zaimportować żadnych wpisów${errors > 0 ? ` (${errors} błędów)` : ''}`, 'error');
-        }
-    } catch (error) {
-        console.error('Błąd wgrywania Excel:', error);
-        showMessage('Błąd podczas wgrywania pliku Excel', 'error');
     }
 }
 

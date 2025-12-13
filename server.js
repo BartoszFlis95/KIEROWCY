@@ -225,6 +225,8 @@ function readUsers() {
   const localPath = path.join(__dirname, 'data', 'users.json');
   const filePath = fs.existsSync(renderPath) ? renderPath : localPath;
   
+  console.log(`Sprawdzam plik: ${filePath}, istnieje: ${fs.existsSync(filePath)}`);
+  
   try {
     const users = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     console.log('Liczba użytkowników:', users.length);
@@ -232,7 +234,19 @@ function readUsers() {
   } catch (err) {
     if (err.code === 'ENOENT') {
       console.log(`Plik nie istnieje w ścieżce: ${filePath}, zwracam pustą tablicę`);
-      return [];
+      // Spróbuj utworzyć plik jeśli nie istnieje
+      try {
+        const dir = path.dirname(filePath);
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.writeFileSync(filePath, '[]', 'utf-8');
+        console.log(`Utworzono pusty plik: ${filePath}`);
+        return [];
+      } catch (createErr) {
+        console.error('Błąd tworzenia pliku:', createErr);
+        return [];
+      }
     }
     console.error('Błąd odczytu użytkowników:', err);
     return [];

@@ -22,3 +22,4 @@ services:
       - key: SMTP_PASS
         sync: false  # Ustaw ręcznie w panelu Render
 
+

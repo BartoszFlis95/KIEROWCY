@@ -51,3 +51,4 @@ Render automatycznie sprawdza czy aplikacja odpowiada na porcie.
 ## Logi:
 Wszystkie logi są dostępne w panelu Render → Logs
 
+

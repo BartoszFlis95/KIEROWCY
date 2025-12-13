@@ -534,7 +534,7 @@ async function sendEmailToDrivers(data) {
             return;
         }
         
-        const apiUrl = 'https://www.deneeu.pl/api/send-email';
+        const apiUrl = `${API_BASE}/send-email`;
         
         console.log('[SEND EMAIL] Endpoint:', apiUrl);
         

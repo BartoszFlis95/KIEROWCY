@@ -45,6 +45,14 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
+// Middleware do logowania żądań (tylko w produkcji dla debugowania)
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'production') {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Origin: ${req.get('origin') || 'none'}`);
+  }
+  next();
+});
+
 // Konfiguracja Multer do wgrywania plików
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -1040,14 +1048,17 @@ initializeDataFile().then(() => {
     console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
     if (process.env.NODE_ENV !== 'production') {
       console.log(`🌐 Lokalny dostęp: http://localhost:${PORT}`);
+      console.log(`🌐 API Base: http://localhost:${PORT}/api`);
     } else {
-      console.log(`🌐 Production mode - dostęp przez Render`);
+      console.log(`🌐 Production mode - dostęp przez www.deneeu.pl`);
+      console.log(`🌐 API Base: https://www.deneeu.pl/api`);
     }
     console.log(`📧 Konfiguracja SMTP: ${transporter ? 'Gotowa' : 'Nie ustawiona'}`);
     if (transporter) {
       console.log(`📧 SMTP Host: ${emailConfig.host}:${emailConfig.port} (secure: ${emailConfig.secure})`);
     }
-    console.log(`💚 Health check: http://localhost:${PORT}/health`);
+    console.log(`💚 Health check: /health`);
+    console.log(`🔒 CORS: Dozwolone originy: ${allowedOrigins.join(', ')}`);
   });
 }).catch(err => {
   console.error('❌ Błąd inicjalizacji:', err);

@@ -1,6 +1,6 @@
 // server.js
 require('dotenv').config();
-const API_URL = "https://www.deneeu.pl";
+const API_URL = 'https://www.deneeu.pl';
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');

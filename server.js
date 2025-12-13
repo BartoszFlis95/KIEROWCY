@@ -302,50 +302,53 @@ app.post('/api/login', async (req, res) => {
     const { email, haslo, login } = req.body;
     const loginOrEmail = login || email;
     
-    console.log('=== PRÓBA LOGOWANIA ===');
-    console.log('Otrzymane dane:', { email, login, haslo: haslo ? '***' : 'brak' });
-    console.log('loginOrEmail:', loginOrEmail);
-    console.log('IP klienta:', req.ip || req.connection.remoteAddress);
-    
     if (!loginOrEmail || !haslo) {
-      console.log('Brak wymaganych pól');
       return res.status(400).json({ success: false, message: 'Login/Email i hasło wymagane' });
     }
 
     const users = await readUsers();
-    console.log('Liczba użytkowników w bazie:', users.length);
     
-    // Znajdź użytkownika (sprawdź zarówno login jak i email)
-    const user = users.find(u => {
-      const matchEmail = u.email === loginOrEmail;
-      const matchLogin = u.login === loginOrEmail;
-      console.log(`Użytkownik ${u.id}: email=${u.email}, login=${u.login}, matchEmail=${matchEmail}, matchLogin=${matchLogin}`);
-      return matchEmail || matchLogin;
-    });
+    // Znajdź użytkownika (sprawdź zarówno login jak i email) - odpowiednik $or w MongoDB
+    const user = users.find(u => 
+      u.email === loginOrEmail || u.login === loginOrEmail
+    );
     
     if (!user) {
-      console.log('Nie znaleziono użytkownika');
-      return res.status(401).json({ success: false, message: 'Nieprawidłowy login/email lub hasło' });
+      return res.status(401).json({ success: false, message: 'Niepoprawny login lub email' });
     }
-
-    console.log('Znaleziono użytkownika:', { id: user.id, email: user.email, login: user.login, role: user.role });
-    console.log('Sprawdzanie hasła...');
 
     // Sprawdź hasło
     const ok = await bcrypt.compare(haslo, user.haslo);
-    console.log('Wynik porównania hasła:', ok);
     
     if (!ok) {
-      console.log('Hasło nieprawidłowe');
-      return res.status(401).json({ success: false, message: 'Nieprawidłowy login/email lub hasło' });
+      return res.status(401).json({ success: false, message: 'Niepoprawny login lub email' });
     }
-    
-    console.log('Hasło poprawne!');
 
+    // Sprawdzenie roli
     const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
     const { haslo: pw, ...userWithoutPassword } = user;
-    console.log(`✓ Zalogowano: ${loginOrEmail}`);
-    res.json({ success: true, message: 'Zalogowano pomyślnie', token, user: userWithoutPassword });
+    
+    if (user.role === 'admin') {
+      // Logowanie jako admin
+      console.log(`✓ Zalogowano admina: ${loginOrEmail}`);
+      res.json({ 
+        success: true, 
+        message: 'Zalogowano pomyślnie', 
+        token, 
+        user: userWithoutPassword,
+        redirect: 'admin.html'
+      });
+    } else {
+      // Logowanie jako kierowca
+      console.log(`✓ Zalogowano kierowcę: ${loginOrEmail}`);
+      res.json({ 
+        success: true, 
+        message: 'Zalogowano pomyślnie', 
+        token, 
+        user: userWithoutPassword,
+        redirect: 'dashboard.html'
+      });
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Błąd serwera' });

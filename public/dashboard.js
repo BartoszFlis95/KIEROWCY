@@ -234,27 +234,27 @@ async function loadTileCounts() {
 
 // Obsługa formularzy
 function setupForms() {
-    // Wgrywanie pliku Excel dla czasu pracy
-    const fileInput = document.getElementById('excel-file-input');
-    const uploadBtn = document.getElementById('upload-excel-btn');
-    const fileNameDiv = document.getElementById('file-name');
-    
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            fileNameDiv.textContent = `Wybrany plik: ${file.name}`;
-            fileNameDiv.style.display = 'block';
-            uploadBtn.style.display = 'block';
-        }
+    // Czas pracy
+    document.getElementById('add-czas-pracy-btn').addEventListener('click', () => {
+        document.getElementById('czas-pracy-form-container').style.display = 'block';
+        document.getElementById('czas-pracy-form').reset();
+        document.getElementById('czas-data').valueAsDate = new Date();
     });
     
-    uploadBtn.addEventListener('click', async () => {
-        const file = fileInput.files[0];
-        if (!file) {
-            showMessage('Wybierz plik Excel', 'error');
-            return;
-        }
-        await uploadExcelFile(file);
+    document.getElementById('cancel-czas-pracy').addEventListener('click', () => {
+        document.getElementById('czas-pracy-form-container').style.display = 'none';
+    });
+    
+    document.getElementById('czas-pracy-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = {
+            data: document.getElementById('czas-data').value,
+            start: document.getElementById('czas-start').value,
+            koniec: document.getElementById('czas-koniec').value,
+            opis: document.getElementById('czas-opis').value
+        };
+        
+        await saveCzasPracy(formData);
     });
     
     // Urlopy
@@ -304,36 +304,25 @@ function setupForms() {
     });
 }
 
-// Funkcja do wgrywania pliku Excel
-async function uploadExcelFile(file) {
+// Funkcje do zapisu danych
+async function saveCzasPracy(data) {
     try {
-        const formData = new FormData();
-        formData.append('excel', file);
-        
-        const token = getToken();
-        const response = await fetch(`${API_BASE}/czas-pracy/upload`, {
+        const result = await fetchWithAuth(`${API_BASE}/czas-pracy`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: formData
+            body: JSON.stringify(data)
         });
         
-        const result = await response.json();
-        
-        if (result.success) {
-            showMessage(`Pomyślnie zaimportowano ${result.imported || 0} wpisów czasu pracy!`, 'success');
-            document.getElementById('excel-file-input').value = '';
-            document.getElementById('file-name').style.display = 'none';
-            document.getElementById('upload-excel-btn').style.display = 'none';
+        if (result && result.success) {
+            document.getElementById('czas-pracy-form-container').style.display = 'none';
+            showMessage('Czas pracy został zapisany pomyślnie!', 'success');
             loadCzasPracy();
             loadTileCounts();
         } else {
-            showMessage(result.message || 'Błąd importu pliku', 'error');
+            showMessage(result?.message || 'Błąd zapisu', 'error');
         }
     } catch (error) {
         console.error('Błąd:', error);
-        showMessage('Wystąpił błąd podczas wgrywania pliku', 'error');
+        showMessage('Wystąpił błąd podczas zapisywania czasu pracy', 'error');
     }
 }
 

@@ -134,8 +134,13 @@
                     <button id="back-plan" class="btn-back">← Powrót</button>
                     <h2>Plan</h2>
                 </div>
-                <button id="add-plan-btn" class="btn-primary-small">+ Dodaj</button>
+                <div style="display: flex; gap: 10px;">
+                    <button id="upload-excel-btn" class="btn-excel">📊 Wgraj Excel</button>
+                    <button id="add-plan-btn" class="btn-primary-small">+ Dodaj</button>
+                </div>
             </div>
+
+            <input type="file" id="excel-file-input" accept=".xlsx,.xls,.csv" style="display: none;">
 
             <div id="plan-form-container" class="form-container" style="display: none;">
                 <form id="plan-form" class="data-form">
@@ -175,6 +180,7 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="dashboard.js"></script>
 </body>
 </html>

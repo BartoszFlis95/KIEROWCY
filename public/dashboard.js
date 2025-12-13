@@ -10,21 +10,18 @@ function getToken() {
 function checkAuth() {
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user'));
-    localStorage.setItem('user', JSON.stringify(data.user));
 
+    if (!token) {
+        console.warn('Brak tokena, przekierowanie do logowania');
+        window.location.href = 'login.html';
+        return false;
+    }
 
-   if (!token) {
-    console.warn('Brak tokena, przekierowanie do logowania');
-    window.location.href = 'login.html';
-    return false;
-}
-
-if (!user || user.role !== 'driver') {
-    console.warn('Użytkownik nie jest kierowcą, przekierowanie do logowania');
-    window.location.href = 'login.html';
-    return false;
-}
-
+    if (!user || user.role !== 'driver') {
+        console.warn('Użytkownik nie jest kierowcą, przekierowanie do logowania');
+        window.location.href = 'login.html';
+        return false;
+    }
 
     return true; // Wszystko OK
 }
@@ -305,6 +302,23 @@ function setupForms() {
         
         await savePlan(formData);
     });
+
+    // Obsługa wgrywania Excel
+    document.getElementById('upload-excel-btn').addEventListener('click', () => {
+        document.getElementById('excel-file-input').click();
+    });
+
+    document.getElementById('excel-file-input').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
+            showMessage('Proszę wybrać plik Excel (.xlsx, .xls) lub CSV', 'error');
+            return;
+        }
+
+        await processExcelFile(file);
+    });
 }
 
 // Funkcje do zapisu danych
@@ -452,6 +466,119 @@ async function loadPlan() {
     } catch (error) {
         console.error('Błąd:', error);
         listDiv.innerHTML = '<div class="empty-state"><p>Błąd podczas ładowania danych</p></div>';
+    }
+}
+
+// Funkcja do przetwarzania pliku Excel
+async function processExcelFile(file) {
+    try {
+        showMessage('Przetwarzanie pliku Excel...', 'success');
+        
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                // Pobierz pierwszą kartę
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                // Konwertuj do JSON
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+                    header: ['data', 'tytul', 'opis', 'priorytet'],
+                    defval: ''
+                });
+
+                if (jsonData.length === 0) {
+                    showMessage('Plik Excel jest pusty lub ma nieprawidłowy format', 'error');
+                    return;
+                }
+
+                // Pomiń nagłówek jeśli istnieje
+                const rows = jsonData.filter((row, index) => {
+                    // Pomiń pierwszy wiersz jeśli wygląda jak nagłówek
+                    if (index === 0 && (row.data === 'data' || row.data === 'Data' || !row.data)) {
+                        return false;
+                    }
+                    return row.data && row.tytul; // Wymagane pola
+                });
+
+                if (rows.length === 0) {
+                    showMessage('Brak poprawnych danych w pliku Excel', 'error');
+                    return;
+                }
+
+                // Zapisz każdy wiersz
+                let successCount = 0;
+                let errorCount = 0;
+
+                for (const row of rows) {
+                    try {
+                        // Formatuj datę jeśli jest w formacie Excel
+                        let dataValue = row.data;
+                        if (typeof dataValue === 'number') {
+                            // Konwersja z numeru Excel do daty
+                            const excelDate = XLSX.SSF.parse_date_code(dataValue);
+                            dataValue = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`;
+                        } else if (dataValue instanceof Date) {
+                            dataValue = dataValue.toISOString().split('T')[0];
+                        } else if (typeof dataValue === 'string') {
+                            // Spróbuj sparsować różne formaty daty
+                            const date = new Date(dataValue);
+                            if (!isNaN(date.getTime())) {
+                                dataValue = date.toISOString().split('T')[0];
+                            }
+                        }
+
+                        const planData = {
+                            data: dataValue,
+                            tytul: String(row.tytul || '').trim(),
+                            opis: String(row.opis || '').trim(),
+                            priorytet: String(row.priorytet || 'normalny').toLowerCase().trim() || 'normalny'
+                        };
+
+                        if (!planData.data || !planData.tytul) {
+                            errorCount++;
+                            continue;
+                        }
+
+                        const result = await fetchWithAuth(`${API_BASE}/plan`, {
+                            method: 'POST',
+                            body: JSON.stringify(planData)
+                        });
+
+                        if (result && result.success) {
+                            successCount++;
+                        } else {
+                            errorCount++;
+                        }
+                    } catch (err) {
+                        console.error('Błąd zapisu wiersza:', err);
+                        errorCount++;
+                    }
+                }
+
+                // Wyczyść input
+                document.getElementById('excel-file-input').value = '';
+
+                if (successCount > 0) {
+                    showMessage(`Zaimportowano ${successCount} wpisów do planu${errorCount > 0 ? `, ${errorCount} błędów` : ''}`, 'success');
+                    loadPlan();
+                    loadTileCounts();
+                } else {
+                    showMessage(`Nie udało się zaimportować żadnych wpisów. Sprawdź format pliku.`, 'error');
+                }
+            } catch (err) {
+                console.error('Błąd parsowania Excel:', err);
+                showMessage('Błąd podczas przetwarzania pliku Excel', 'error');
+            }
+        };
+
+        reader.readAsArrayBuffer(file);
+    } catch (error) {
+        console.error('Błąd wgrywania pliku:', error);
+        showMessage('Wystąpił błąd podczas wgrywania pliku', 'error');
     }
 }
 

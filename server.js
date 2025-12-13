@@ -21,22 +21,7 @@ app.use(express.static('public'));
 async function readUsers() {
   try {
     const data = await fs.readFile(DATA_FILE, 'utf8');
-    const trimmedData = data.trim();
-    
-    // Jeśli plik jest pusty lub zawiera tylko białe znaki, zwróć pustą tablicę
-    if (!trimmedData || trimmedData === '') {
-      console.log(`Plik ${DATA_FILE} jest pusty, zwracam pustą tablicę`);
-      return [];
-    }
-    
-    const users = JSON.parse(trimmedData);
-    
-    // Upewnij się, że to tablica
-    if (!Array.isArray(users)) {
-      console.error(`Plik ${DATA_FILE} nie zawiera tablicy, zwracam pustą tablicę`);
-      return [];
-    }
-    
+    const users = JSON.parse(data || '[]');
     console.log(`Odczytano ${users.length} użytkowników z ${DATA_FILE}`);
     return users;
   } catch (err) {
@@ -45,7 +30,6 @@ async function readUsers() {
       return [];
     }
     console.error('Błąd odczytu użytkowników:', err);
-    console.error('Szczegóły błędu:', err.message);
     return [];
   }
 }
@@ -76,50 +60,31 @@ app.post('/api/register', async (req, res) => {
     if (!imie || !nazwisko || !email || !haslo) {
       return res.status(400).json({ success: false, message: 'Wszystkie pola wymagane' });
     }
-    
-    // Normalizuj email (lowercase)
-    const normalizedEmail = email.toLowerCase().trim();
-    
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(normalizedEmail)) return res.status(400).json({ success: false, message: 'Nieprawidłowy email' });
+    if (!emailRegex.test(email)) return res.status(400).json({ success: false, message: 'Nieprawidłowy email' });
     if (haslo.length < 6) return res.status(400).json({ success: false, message: 'Hasło min 6 znaków' });
 
     const users = await readUsers();
-    if (users.some(u => u.email.toLowerCase() === normalizedEmail)) {
+    if (users.some(u => u.email === email)) {
       return res.status(400).json({ success: false, message: 'Użytkownik już istnieje' });
     }
 
     const hashed = await bcrypt.hash(haslo, 10);
-    console.log(`Tworzenie użytkownika: ${normalizedEmail}`);
-    
     const newUser = {
       id: Date.now().toString(),
-      imie, nazwisko, email: normalizedEmail, haslo: hashed, telefon: telefon || '',
+      imie, nazwisko, email, haslo: hashed, telefon: telefon || '',
       dataRejestracji: new Date().toISOString(),
       czasPracy: [], urlopy: [], plan: [],
       role: 'driver' // Dodajemy rolę kierowcy
     };
-    
-    console.log(`Dodawanie użytkownika do listy (obecnie ${users.length} użytkowników)`);
     users.push(newUser);
-    
     const writeResult = await writeUsers(users);
     if (!writeResult) {
       console.error('Błąd zapisu użytkownika do pliku');
       return res.status(500).json({ success: false, message: 'Błąd zapisu danych' });
     }
-    
-    // Sprawdź czy użytkownik został zapisany
-    const verifyUsers = await readUsers();
-    console.log(`Po zapisie: ${verifyUsers.length} użytkowników w bazie`);
-    const savedUser = verifyUsers.find(u => u.email.toLowerCase() === normalizedEmail);
-    if (!savedUser) {
-      console.error('BŁĄD: Użytkownik nie został zapisany!');
-      return res.status(500).json({ success: false, message: 'Błąd zapisu użytkownika' });
-    }
-    
     const { haslo: pw, ...userWithoutPassword } = newUser;
-    console.log(`✓ Zarejestrowano użytkownika: ${normalizedEmail}`);
+    console.log(`Zarejestrowano użytkownika: ${email}`);
     res.status(201).json({ success: true, message: 'Zarejestrowano', user: userWithoutPassword });
   } catch (err) {
     console.error(err);
@@ -131,40 +96,20 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   try {
     const { email, haslo } = req.body;
-    
-    // Normalizuj email (lowercase)
-    const normalizedEmail = email ? email.toLowerCase().trim() : '';
-    
-    console.log(`Próba logowania: email=${normalizedEmail}`);
-    
-    if (!normalizedEmail || !haslo) {
-      console.log('Brak email lub hasła');
-      return res.status(400).json({ success: false, message: 'Email i hasło wymagane' });
-    }
+    if (!email || !haslo) return res.status(400).json({ success: false, message: 'Email i hasło wymagane' });
 
     const users = await readUsers();
-    console.log(`Znaleziono ${users.length} użytkowników w bazie`);
-    console.log('Lista emaili:', users.map(u => u.email));
-    
-    const user = users.find(u => u.email.toLowerCase() === normalizedEmail);
-    if (!user) {
-      console.log(`Użytkownik z emailem ${normalizedEmail} nie został znaleziony`);
-      return res.status(401).json({ success: false, message: 'Nieprawidłowy email lub hasło' });
-    }
+    const user = users.find(u => u.email === email);
+    if (!user) return res.status(401).json({ success: false, message: 'Nieprawidłowy email lub hasło' });
 
-    console.log(`Znaleziono użytkownika: ${user.email}, sprawdzanie hasła...`);
     const ok = await bcrypt.compare(haslo, user.haslo);
-    if (!ok) {
-      console.log('Hasło nieprawidłowe');
-      return res.status(401).json({ success: false, message: 'Nieprawidłowy email lub hasło' });
-    }
+    if (!ok) return res.status(401).json({ success: false, message: 'Nieprawidłowy email lub hasło' });
 
-    console.log('Logowanie pomyślne');
     const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
     const { haslo: pw, ...userWithoutPassword } = user;
     res.json({ success: true, message: 'Zalogowano', token, user: userWithoutPassword });
   } catch (err) {
-    console.error('Błąd logowania:', err);
+    console.error(err);
     res.status(500).json({ success: false, message: 'Błąd serwera' });
   }
 });
@@ -288,15 +233,6 @@ async function initializeDataFile() {
   try {
     await fs.access(DATA_FILE);
     console.log(`Plik ${DATA_FILE} istnieje`);
-    
-    // Sprawdź czy plik nie jest pusty
-    const data = await fs.readFile(DATA_FILE, 'utf8');
-    const trimmedData = data.trim();
-    if (!trimmedData || trimmedData === '') {
-      console.log(`Plik ${DATA_FILE} jest pusty, inicjalizuję pustą tablicę...`);
-      await fs.writeFile(DATA_FILE, '[]', 'utf8');
-      console.log(`Zainicjalizowano plik ${DATA_FILE}`);
-    }
   } catch (err) {
     if (err.code === 'ENOENT') {
       console.log(`Tworzenie pliku ${DATA_FILE}...`);
@@ -304,8 +240,6 @@ async function initializeDataFile() {
       await fs.mkdir(dir, { recursive: true });
       await fs.writeFile(DATA_FILE, '[]', 'utf8');
       console.log(`Utworzono plik ${DATA_FILE}`);
-    } else {
-      console.error('Błąd inicjalizacji pliku:', err);
     }
   }
 }

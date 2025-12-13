@@ -1,5 +1,6 @@
 // Stała z bazowym URL API
-const API_BASE = "https://kierowcy1.onrender.com/api"; // <- backend na Render
+const API_BASE = "https://www.deneeu.pl/api";
+ // <- backend na Render
 
 // Funkcja do pobrania tokenu z localStorage
 function getToken() {

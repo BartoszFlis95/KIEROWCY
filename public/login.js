@@ -1,25 +1,23 @@
-// login.js
-const API_URL = "https://kierowcy1.onrender.com";
-
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.querySelector('form');
     const messageDiv = document.getElementById('message');
 
+    const API_URL = "https://www.deneeu.pl/api"; // Twój backend
+
     if (loginForm) {
         loginForm.addEventListener('submit', async function(e) {
-            e.preventDefault(); // Zapobieganie domyślnemu zachowaniu formularza
+            e.preventDefault();
 
             const email = document.querySelector('#email')?.value.trim();
             const haslo = document.querySelector('#haslo')?.value;
 
-            // Walidacja pól
             if (!email || !haslo) {
                 displayMessage('Proszę wypełnić wszystkie pola', 'error');
                 return;
             }
 
             try {
-                const response = await fetch(`${API_URL}/api/login`, {
+                const response = await fetch(`${API_URL}/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, haslo })
@@ -34,7 +32,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     displayMessage(data.message, 'success');
 
-                    // Przekierowanie po 1,5 sekundy
                     setTimeout(() => {
                         window.location.href = 'dashboard.html';
                     }, 1500);
@@ -48,7 +45,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Funkcja do wyświetlania komunikatów błędów lub sukcesu
     function displayMessage(msg, type) {
         messageDiv.textContent = msg;
         messageDiv.className = `message ${type}`;

@@ -19,10 +19,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
-            // Jeśli login to "admin", użyj pola "login" zamiast "email"
-            const loginData = email === 'admin' 
-                ? { login: 'admin', haslo }
-                : { email, haslo };
+            // Wyślij login/email - backend sam zdecyduje co to jest
+            // Backend sprawdza zarówno login jak i email, ignorując wielkość liter
+            const loginData = { 
+                login: email.trim(),  // Wyślij jako login
+                email: email.trim(),   // I jako email - backend sprawdzi oba
+                haslo 
+            };
             
             const response = await fetch(`${API_URL}/api/login`, {
                 method: 'POST',

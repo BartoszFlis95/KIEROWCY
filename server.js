@@ -312,7 +312,8 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   try {
     const { email, haslo, login } = req.body;
-    const loginOrEmail = (login || email || '').trim().toLowerCase();
+    // Użyj login jeśli jest podany, w przeciwnym razie email
+    const loginOrEmail = ((login || email || '').trim()).toLowerCase();
     
     if (!loginOrEmail || !haslo) {
       return res.status(400).json({ success: false, message: 'Login/Email i hasło wymagane' });

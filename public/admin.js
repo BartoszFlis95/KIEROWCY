@@ -519,6 +519,7 @@ async function sendEmailToDrivers(data) {
     console.log('[SEND EMAIL] Dane kierowców:', driversData);
     
     try {
+        // Opcja 1: Wysyłanie przez JSON (obecna metoda)
         const emailData = {
             drivers: Object.keys(driversData).map(pseudonim => ({
                 pseudonim: pseudonim,
@@ -528,15 +529,28 @@ async function sendEmailToDrivers(data) {
         };
         
         console.log('[SEND EMAIL] Wysyłanie danych do serwera:', JSON.stringify(emailData, null, 2));
-        console.log('[SEND EMAIL] Endpoint:', `${API_BASE}/send-email`);
         
-        const result = await fetchWithAuth(`${API_BASE}/send-email`, {
+        const token = getToken();
+        if (!token) {
+            showMessage('Brak autoryzacji. Zaloguj się ponownie.', 'error');
+            window.location.href = 'login.html';
+            return;
+        }
+        
+        const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? `http://${window.location.hostname}:3000/api/send-email`
+            : 'https://www.deneeu.pl/api/send-email';
+        
+        console.log('[SEND EMAIL] Endpoint:', apiUrl);
+        
+        const result = await fetch(apiUrl, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(emailData)
-        });
+        }).then(res => res.json());
         
         console.log('[SEND EMAIL] Odpowiedź serwera:', result);
         console.log('═══════════════════════════════════════════════════════════');

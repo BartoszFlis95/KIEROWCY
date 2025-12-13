@@ -220,37 +220,9 @@ function generateEmailHTML(pseudonim, dane) {
 
 // Helper: read/write users
 function readUsers() {
-  // Sprawdź ścieżkę Render, jeśli nie istnieje, użyj lokalnej
-  const renderPath = '/opt/render/project/src/data/users.json';
-  const localPath = path.join(__dirname, 'data', 'users.json');
-  const filePath = fs.existsSync(renderPath) ? renderPath : localPath;
-  
-  console.log(`Sprawdzam plik: ${filePath}, istnieje: ${fs.existsSync(filePath)}`);
-  
-  try {
-    const users = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    console.log('Liczba użytkowników:', users.length);
-    return users;
-  } catch (err) {
-    if (err.code === 'ENOENT') {
-      console.log(`Plik nie istnieje w ścieżce: ${filePath}, zwracam pustą tablicę`);
-      // Spróbuj utworzyć plik jeśli nie istnieje
-      try {
-        const dir = path.dirname(filePath);
-        if (!fs.existsSync(dir)) {
-          fs.mkdirSync(dir, { recursive: true });
-        }
-        fs.writeFileSync(filePath, '[]', 'utf-8');
-        console.log(`Utworzono pusty plik: ${filePath}`);
-        return [];
-      } catch (createErr) {
-        console.error('Błąd tworzenia pliku:', createErr);
-        return [];
-      }
-    }
-    console.error('Błąd odczytu użytkowników:', err);
-    return [];
-  }
+  const filePath = './data/users.json'; // ścieżka względna do server.js
+  const users = fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf-8')) : [];
+  return users;
 }
 
 async function writeUsers(users) {
@@ -1035,16 +1007,40 @@ app.post('/api/test-smtp', authenticateToken, async (req, res) => {
 
 // Inicjalizacja - sprawdź czy plik users.json istnieje
 async function initializeDataFile() {
+  // Użyj tej samej logiki ścieżek co readUsers
+  const renderPath = '/opt/render/project/src/data/users.json';
+  const localPath = path.join(__dirname, 'data', 'users.json');
+  const filePath = fs.existsSync(renderPath) ? renderPath : localPath;
+  
+  console.log(`[INIT] Sprawdzam plik: ${filePath}`);
+  console.log(`[INIT] Render path istnieje: ${fs.existsSync(renderPath)}`);
+  console.log(`[INIT] Local path istnieje: ${fs.existsSync(localPath)}`);
+  
   try {
-    await fs.access(DATA_FILE);
-    console.log(`Plik ${DATA_FILE} istnieje`);
+    await fsPromises.access(filePath);
+    console.log(`✓ Plik ${filePath} istnieje`);
+    
+    // Sprawdź czy plik ma zawartość
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const users = JSON.parse(content || '[]');
+    console.log(`✓ Plik zawiera ${users.length} użytkowników`);
   } catch (err) {
     if (err.code === 'ENOENT') {
-      console.log(`Tworzenie pliku ${DATA_FILE}...`);
-      const dir = path.dirname(DATA_FILE);
-      await fs.mkdir(dir, { recursive: true });
-      await fs.writeFile(DATA_FILE, '[]', 'utf8');
-      console.log(`Utworzono plik ${DATA_FILE}`);
+      console.log(`⚠ Plik nie istnieje, tworzenie: ${filePath}...`);
+      try {
+        const dir = path.dirname(filePath);
+        console.log(`[INIT] Tworzenie katalogu: ${dir}`);
+        await fsPromises.mkdir(dir, { recursive: true });
+        console.log(`[INIT] Katalog utworzony`);
+        
+        await fsPromises.writeFile(filePath, '[]', 'utf8');
+        console.log(`✓ Utworzono pusty plik: ${filePath}`);
+      } catch (createErr) {
+        console.error(`✗ Błąd tworzenia pliku ${filePath}:`, createErr);
+        console.error(`✗ Szczegóły błędu:`, createErr.code, createErr.message);
+      }
+    } else {
+      console.error('✗ Błąd inicjalizacji pliku:', err);
     }
   }
 }

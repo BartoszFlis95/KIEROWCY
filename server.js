@@ -312,7 +312,7 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   try {
     const { email, haslo, login } = req.body;
-    const loginOrEmail = login || email;
+    const loginOrEmail = (login || email || '').trim().toLowerCase();
     
     if (!loginOrEmail || !haslo) {
       return res.status(400).json({ success: false, message: 'Login/Email i hasło wymagane' });
@@ -320,8 +320,12 @@ app.post('/api/login', async (req, res) => {
 
     const users = await readUsers();
     
-    // Znajdź użytkownika (sprawdź zarówno login jak i email) - odpowiednik $or w MongoDB
-    const user = users.find(u => (u.login && u.login === loginOrEmail) || u.email === loginOrEmail);
+    // Znajdź użytkownika (sprawdź zarówno login jak i email) - ignoruj wielkość liter i spacje
+    const user = users.find(u => {
+      const userLogin = (u.login || '').trim().toLowerCase();
+      const userEmail = (u.email || '').trim().toLowerCase();
+      return userLogin === loginOrEmail || userEmail === loginOrEmail;
+    });
     
     if (!user) {
       return res.status(401).json({ success: false, message: 'Niepoprawny login lub email' });
@@ -338,27 +342,26 @@ app.post('/api/login', async (req, res) => {
     const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
     const { haslo: pw, ...userWithoutPassword } = user;
     
+    // Zwróć odpowiedź z rolą w response
+    const response = {
+      success: true,
+      message: 'Zalogowano pomyślnie',
+      token,
+      user: userWithoutPassword,
+      role: user.role || 'driver'
+    };
+    
     if (user.role === 'admin') {
       // Logowanie jako admin
       console.log(`✓ Zalogowano admina: ${loginOrEmail}`);
-      res.json({ 
-        success: true, 
-        message: 'Zalogowano pomyślnie', 
-        token, 
-        user: userWithoutPassword,
-        redirect: 'admin.html'
-      });
+      response.redirect = '/admin';
     } else {
       // Logowanie jako kierowca
       console.log(`✓ Zalogowano kierowcę: ${loginOrEmail}`);
-      res.json({ 
-        success: true, 
-        message: 'Zalogowano pomyślnie', 
-        token, 
-        user: userWithoutPassword,
-        redirect: 'dashboard.html'
-      });
+      response.redirect = '/dashboard';
     }
+    
+    res.json(response);
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Błąd serwera' });

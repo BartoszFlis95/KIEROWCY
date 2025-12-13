@@ -36,18 +36,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem('token', data.token);
                 if (data.user) {
                     localStorage.setItem('user', JSON.stringify(data.user));
-                    // Sprawdź rolę użytkownika i przekieruj odpowiednio
-                    if (data.user.role === 'admin') {
-                        displayMessage(data.message, 'success');
-                        setTimeout(() => {
-                            window.location.href = '/admin';
-                        }, 1500);
-                        return;
-                    }
                 }
+                
+                // Użyj role z response lub z user object
+                const userRole = data.role || data.user?.role;
+                const redirectPath = data.redirect || (userRole === 'admin' ? '/admin' : '/dashboard');
+                
                 displayMessage(data.message, 'success');
                 setTimeout(() => {
-                    window.location.href = '/dashboard';
+                    window.location.href = redirectPath;
                 }, 1500);
             } else {
                 displayMessage(data.message, 'error');

@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.querySelector('form');
     const messageDiv = document.getElementById('message');
 
-    const API_URL = "https://www.deneeu.pl/api"; // Twój backend
+    const API_URL = "https://www.deneeu.pl/api"; // backend
 
     if (loginForm) {
         loginForm.addEventListener('submit', async function(e) {
@@ -11,17 +11,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const email = document.querySelector('#email')?.value.trim();
             const haslo = document.querySelector('#haslo')?.value;
 
+            // Walidacja pól
             if (!email || !haslo) {
                 displayMessage('Proszę wypełnić wszystkie pola', 'error');
                 return;
             }
 
             try {
-const response = await fetch(`${API_URL}/login`, { // bez dodatkowego /api
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email, haslo })
-});
+                const response = await fetch(`${API_URL}/login`, { // endpoint backendu
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, haslo })
+                });
 
                 const data = await response.json();
 
@@ -32,6 +33,7 @@ const response = await fetch(`${API_URL}/login`, { // bez dodatkowego /api
 
                     displayMessage(data.message, 'success');
 
+                    // Przekierowanie do dashboard po 1,5 sekundy
                     setTimeout(() => {
                         window.location.href = 'dashboard.html';
                     }, 1500);
@@ -45,6 +47,7 @@ const response = await fetch(`${API_URL}/login`, { // bez dodatkowego /api
         });
     }
 
+    // Funkcja do wyświetlania komunikatów
     function displayMessage(msg, type) {
         messageDiv.textContent = msg;
         messageDiv.className = `message ${type}`;

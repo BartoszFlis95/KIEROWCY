@@ -10,18 +10,21 @@ function getToken() {
 function checkAuth() {
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user'));
+    localStorage.setItem('user', JSON.stringify(data.user));
 
-    if (!token) {
-        console.warn('Brak tokena, przekierowanie do logowania');
-        window.location.href = 'login.html';
-        return false;
-    }
 
-    if (!user || user.role !== 'driver') {
-        console.warn('Użytkownik nie jest kierowcą, przekierowanie do logowania');
-        window.location.href = 'login.html';
-        return false;
-    }
+   if (!token) {
+    console.warn('Brak tokena, przekierowanie do logowania');
+    window.location.href = 'login.html';
+    return false;
+}
+
+if (!user || user.role !== 'driver') {
+    console.warn('Użytkownik nie jest kierowcą, przekierowanie do logowania');
+    window.location.href = 'login.html';
+    return false;
+}
+
 
     return true; // Wszystko OK
 }

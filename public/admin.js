@@ -10,7 +10,7 @@ function getToken() {
 function checkAuth() {
     const token = localStorage.getItem('token');
     if (!token) {
-        window.location.href = 'login.html';
+        window.location.href = '/login';
         return false;
     }
     
@@ -19,16 +19,16 @@ function checkAuth() {
         if (userStr) {
             const user = JSON.parse(userStr);
             if (user.role !== 'admin') {
-                window.location.href = 'login.html';
+                window.location.href = '/login';
                 return false;
             }
         } else {
-            window.location.href = 'login.html';
+            window.location.href = '/login';
             return false;
         }
     } catch (e) {
         console.error('Błąd parsowania użytkownika:', e);
-        window.location.href = 'login.html';
+        window.location.href = '/login';
         return false;
     }
     
@@ -530,7 +530,7 @@ async function sendEmailToDrivers(data) {
         const token = getToken();
         if (!token) {
             showMessage('Brak autoryzacji. Zaloguj się ponownie.', 'error');
-            window.location.href = 'login.html';
+            window.location.href = '/login';
             return;
         }
         
@@ -655,7 +655,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         logoutBtn.addEventListener('click', () => {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
-            window.location.href = 'login.html';
+            window.location.href = '/login';
         });
     }
     

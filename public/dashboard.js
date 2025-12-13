@@ -18,14 +18,14 @@ function checkAuth() {
         try {
             const user = JSON.parse(userStr);
             if (user.role === 'admin') {
-                if (!window.location.pathname.includes('admin.html')) {
-                    window.location.href = 'admin.html';
+                if (!window.location.pathname.includes('/admin')) {
+                    window.location.href = '/admin';
                     return false;
                 }
             } else {
-                // Jeśli zwykły użytkownik próbuje wejść do admin.html, przekieruj do dashboard
-                if (window.location.pathname.includes('admin.html')) {
-                    window.location.href = 'dashboard.html';
+                // Jeśli zwykły użytkownik próbuje wejść do /admin, przekieruj do dashboard
+                if (window.location.pathname.includes('/admin')) {
+                    window.location.href = '/dashboard';
                     return false;
                 }
             }

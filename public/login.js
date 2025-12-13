@@ -40,14 +40,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.user.role === 'admin') {
                         displayMessage(data.message, 'success');
                         setTimeout(() => {
-                            window.location.href = 'admin.html';
+                            window.location.href = '/admin';
                         }, 1500);
                         return;
                     }
                 }
                 displayMessage(data.message, 'success');
                 setTimeout(() => {
-                    window.location.href = 'dashboard.html';
+                    window.location.href = '/dashboard';
                 }, 1500);
             } else {
                 displayMessage(data.message, 'error');

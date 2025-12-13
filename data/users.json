@@ -1,0 +1,45 @@
+[
+  {
+    "id": "admin-1",
+    "login": "admin",
+    "email": "admin@deneeu.pl",
+    "haslo": "$2a$10$ktViktInhWFh4IQXYXCXDOXRcioM2PlbucP4KukkcE3JwshtyLyR6",
+    "imie": "Administrator",
+    "nazwisko": "",
+    "telefon": "",
+    "dataRejestracji": "2024-01-01T00:00:00.000Z",
+    "czasPracy": [],
+    "urlopy": [],
+    "plan": [],
+    "role": "admin"
+  },
+  {
+    "id": "bus-1765639818579",
+    "login": "kierowca1",
+    "email": "bartoszflis95@gmail.com",
+    "haslo": "$2a$10$v4dhXG3G7dR1cHqfiN2sp.ktlNt0gv5UTqJ15DAxc44Bc9wn.KQua",
+    "pseudonim": "Adam B bus",
+    "imie": "Adam",
+    "nazwisko": "B",
+    "telefon": "",
+    "dataRejestracji": "2025-12-13T15:30:18.579Z",
+    "czasPracy": [],
+    "urlopy": [],
+    "plan": [],
+    "role": "driver"
+  },
+  {
+    "id": "1765642599618",
+    "login": "admin2",
+    "imie": "Bartosz",
+    "nazwisko": "Flis",
+    "email": "fibasz95@gmail.com",
+    "haslo": "$2a$10$AR6BeadwT58.tmiAivq1mejDV73X1R8zcI1X32Ypn0PqwEc8N5Iw6",
+    "telefon": "017670167819",
+    "dataRejestracji": "2025-12-13T16:16:39.618Z",
+    "czasPracy": [],
+    "urlopy": [],
+    "plan": [],
+    "role": "admin"
+  }
+]

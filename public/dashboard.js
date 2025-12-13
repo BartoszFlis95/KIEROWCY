@@ -7,18 +7,24 @@ function getToken() {
 }
 
 // Funkcja do sprawdzania autoryzacji
-if (data.success) {
-    // Zapis tokenu i użytkownika
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
+function checkAuth() {
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user'));
 
-    displayMessage(data.message, 'success');
+    if (!token) {
+        console.warn('Brak tokena, przekierowanie do logowania');
+        window.location.href = 'login.html';
+        return false;
+    }
 
-    setTimeout(() => {
-        window.location.href = 'dashboard.html';
-    }, 1500);
+    if (!user || user.role !== 'driver') {
+        console.warn('Użytkownik nie jest kierowcą, przekierowanie do logowania');
+        window.location.href = 'login.html';
+        return false;
+    }
+
+    return true; // Wszystko OK
 }
-
 
 // Zmienna do przechowywania aktualnego użytkownika
 let currentUser = null;
@@ -228,27 +234,27 @@ async function loadTileCounts() {
 
 // Obsługa formularzy
 function setupForms() {
-    // Wgrywanie pliku Excel dla czasu pracy
-    const fileInput = document.getElementById('excel-file-input');
-    const uploadBtn = document.getElementById('upload-excel-btn');
-    const fileNameDiv = document.getElementById('file-name');
-    
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            fileNameDiv.textContent = `Wybrany plik: ${file.name}`;
-            fileNameDiv.style.display = 'block';
-            uploadBtn.style.display = 'block';
-        }
+    // Czas pracy
+    document.getElementById('add-czas-pracy-btn').addEventListener('click', () => {
+        document.getElementById('czas-pracy-form-container').style.display = 'block';
+        document.getElementById('czas-pracy-form').reset();
+        document.getElementById('czas-data').valueAsDate = new Date();
     });
     
-    uploadBtn.addEventListener('click', async () => {
-        const file = fileInput.files[0];
-        if (!file) {
-            showMessage('Wybierz plik Excel', 'error');
-            return;
-        }
-        await uploadExcelFile(file);
+    document.getElementById('cancel-czas-pracy').addEventListener('click', () => {
+        document.getElementById('czas-pracy-form-container').style.display = 'none';
+    });
+    
+    document.getElementById('czas-pracy-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = {
+            data: document.getElementById('czas-data').value,
+            start: document.getElementById('czas-start').value,
+            koniec: document.getElementById('czas-koniec').value,
+            opis: document.getElementById('czas-opis').value
+        };
+        
+        await saveCzasPracy(formData);
     });
     
     // Urlopy
@@ -285,6 +291,20 @@ function setupForms() {
         document.getElementById('plan-form-container').style.display = 'none';
     });
     
+    // Obsługa wgrywania Excel
+    document.getElementById('upload-excel-btn').addEventListener('click', () => {
+        document.getElementById('excel-file-input').click();
+    });
+    
+    document.getElementById('excel-file-input').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        await handleExcelUpload(file);
+        // Reset input
+        e.target.value = '';
+    });
+    
     document.getElementById('plan-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = {
@@ -298,36 +318,25 @@ function setupForms() {
     });
 }
 
-// Funkcja do wgrywania pliku Excel
-async function uploadExcelFile(file) {
+// Funkcje do zapisu danych
+async function saveCzasPracy(data) {
     try {
-        const formData = new FormData();
-        formData.append('excel', file);
-        
-        const token = getToken();
-        const response = await fetch(`${API_BASE}/czas-pracy/upload`, {
+        const result = await fetchWithAuth(`${API_BASE}/czas-pracy`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: formData
+            body: JSON.stringify(data)
         });
         
-        const result = await response.json();
-        
-        if (result.success) {
-            showMessage(`Pomyślnie zaimportowano ${result.imported || 0} wpisów czasu pracy!`, 'success');
-            document.getElementById('excel-file-input').value = '';
-            document.getElementById('file-name').style.display = 'none';
-            document.getElementById('upload-excel-btn').style.display = 'none';
+        if (result && result.success) {
+            document.getElementById('czas-pracy-form-container').style.display = 'none';
+            showMessage('Czas pracy został zapisany pomyślnie!', 'success');
             loadCzasPracy();
             loadTileCounts();
         } else {
-            showMessage(result.message || 'Błąd importu pliku', 'error');
+            showMessage(result?.message || 'Błąd zapisu', 'error');
         }
     } catch (error) {
         console.error('Błąd:', error);
-        showMessage('Wystąpił błąd podczas wgrywania pliku', 'error');
+        showMessage('Wystąpił błąd podczas zapisywania czasu pracy', 'error');
     }
 }
 
@@ -454,6 +463,93 @@ async function loadPlan() {
     } catch (error) {
         console.error('Błąd:', error);
         listDiv.innerHTML = '<div class="empty-state"><p>Błąd podczas ładowania danych</p></div>';
+    }
+}
+
+// Funkcja do obsługi wgrywania pliku Excel
+async function handleExcelUpload(file) {
+    try {
+        showMessage('Przetwarzanie pliku Excel...', 'success');
+        
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        
+        // Pobierz pierwszą kartę
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+        
+        if (jsonData.length === 0) {
+            showMessage('Plik Excel jest pusty', 'error');
+            return;
+        }
+        
+        // Przetwórz dane z Excel
+        let imported = 0;
+        let errors = 0;
+        
+        for (const row of jsonData) {
+            try {
+                // Oczekiwane kolumny: Data, Tytuł, Opis, Priorytet
+                // Obsługa różnych nazw kolumn
+                const dataValue = row['Data'] || row['data'] || row['DATA'] || '';
+                const tytul = row['Tytuł'] || row['tytul'] || row['TYTUŁ'] || row['Tytuł'] || '';
+                const opis = row['Opis'] || row['opis'] || row['OPIS'] || row['Opis'] || '';
+                const priorytet = row['Priorytet'] || row['priorytet'] || row['PRIORYTET'] || row['Priorytet'] || 'normalny';
+                
+                if (!dataValue || !tytul) {
+                    errors++;
+                    continue;
+                }
+                
+                // Konwersja daty (obsługa różnych formatów)
+                let formattedDate = dataValue;
+                if (typeof dataValue === 'number') {
+                    // Excel przechowuje daty jako numery
+                    const excelDate = XLSX.SSF.parse_date_code(dataValue);
+                    formattedDate = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`;
+                } else if (dataValue instanceof Date) {
+                    formattedDate = dataValue.toISOString().split('T')[0];
+                } else if (typeof dataValue === 'string') {
+                    // Spróbuj sparsować datę
+                    const date = new Date(dataValue);
+                    if (!isNaN(date.getTime())) {
+                        formattedDate = date.toISOString().split('T')[0];
+                    }
+                }
+                
+                const planData = {
+                    data: formattedDate,
+                    tytul: String(tytul),
+                    opis: String(opis || ''),
+                    priorytet: String(priorytet || 'normalny')
+                };
+                
+                const result = await fetchWithAuth(`${API_BASE}/plan`, {
+                    method: 'POST',
+                    body: JSON.stringify(planData)
+                });
+                
+                if (result && result.success) {
+                    imported++;
+                } else {
+                    errors++;
+                }
+            } catch (err) {
+                console.error('Błąd importu wiersza:', err);
+                errors++;
+            }
+        }
+        
+        if (imported > 0) {
+            showMessage(`Zaimportowano ${imported} wpisów${errors > 0 ? `, ${errors} błędów` : ''}`, 'success');
+            loadPlan();
+            loadTileCounts();
+        } else {
+            showMessage(`Nie udało się zaimportować żadnych wpisów${errors > 0 ? ` (${errors} błędów)` : ''}`, 'error');
+        }
+    } catch (error) {
+        console.error('Błąd wgrywania Excel:', error);
+        showMessage('Błąd podczas wgrywania pliku Excel', 'error');
     }
 }
 

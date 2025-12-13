@@ -1,20 +1,12 @@
+// server.js
+const API_URL = "https://www.deneeu.pl";
 const express = require('express');
-const multer = require('multer');      // tylko raz
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const fs = require('fs').promises;
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const XLSX = require('xlsx');          // tylko raz
-
-// Konfiguracja multer
-const upload = multer({ 
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
-});
-
-
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,9 +16,6 @@ const JWT_SECRET = process.env.JWT_SECRET || 'zmien-to-w-produkcji';
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
-
-
-
 
 // helper: read/write users
 async function readUsers() {
@@ -188,96 +177,6 @@ app.get('/api/czas-pracy', authenticateToken, async (req, res) => {
     res.json({ success: true, czasPracy: user.czasPracy || [] });
   } catch (err) {
     console.error(err); res.status(500).json({ success: false, message: 'Błąd serwera' });
-  }
-});
-
-// Upload pliku Excel z czasem pracy
-app.post('/api/czas-pracy/upload', authenticateToken, upload.single('excel'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'Brak pliku' });
-    }
-
-    const users = await readUsers();
-    const userIndex = users.findIndex(u => u.id === req.user.id);
-    if (userIndex === -1) {
-      return res.status(404).json({ success: false, message: 'Użytkownik nie znaleziony' });
-    }
-
-    // Przetwórz plik Excel
-    const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(worksheet);
-
-    if (!data || data.length === 0) {
-      return res.status(400).json({ success: false, message: 'Plik Excel jest pusty lub nieprawidłowy' });
-    }
-
-    // Przetwórz dane z Excel
-    const czasPracyEntries = [];
-    let imported = 0;
-
-    for (const row of data) {
-      // Oczekiwane kolumny: Data, Start, Koniec, Opis (lub podobne)
-      const dataValue = row['Data'] || row['data'] || row['DATA'] || row['Data pracy'] || row['Data pracy'];
-      const startValue = row['Start'] || row['start'] || row['START'] || row['Rozpoczęcie'] || row['Od'];
-      const koniecValue = row['Koniec'] || row['koniec'] || row['KONIEC'] || row['Zakończenie'] || row['Do'];
-      const opisValue = row['Opis'] || row['opis'] || row['OPIS'] || row['Uwagi'] || '';
-
-      if (dataValue && startValue && koniecValue) {
-        // Konwersja daty z Excel (jeśli jest liczbą) lub użycie bezpośrednio
-        let dataStr = dataValue;
-        if (typeof dataValue === 'number') {
-          // Excel przechowuje daty jako liczby - konwersja
-          const excelEpoch = new Date(1899, 11, 30);
-          const date = new Date(excelEpoch.getTime() + dataValue * 86400000);
-          dataStr = date.toISOString().split('T')[0];
-        } else if (dataValue instanceof Date) {
-          dataStr = dataValue.toISOString().split('T')[0];
-        } else {
-          // Spróbuj sparsować jako datę
-          const date = new Date(dataValue);
-          if (!isNaN(date.getTime())) {
-            dataStr = date.toISOString().split('T')[0];
-          }
-        }
-
-        const wpis = {
-          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-          data: dataStr,
-          start: String(startValue).substring(0, 5), // Format HH:MM
-          koniec: String(koniecValue).substring(0, 5),
-          opis: String(opisValue || ''),
-          dataUtworzenia: new Date().toISOString()
-        };
-
-        czasPracyEntries.push(wpis);
-        imported++;
-      }
-    }
-
-    if (imported === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Nie znaleziono prawidłowych danych w pliku. Oczekiwane kolumny: Data, Start, Koniec (opcjonalnie: Opis)' 
-      });
-    }
-
-    // Dodaj wpisy do użytkownika
-    users[userIndex].czasPracy = users[userIndex].czasPracy || [];
-    users[userIndex].czasPracy.push(...czasPracyEntries);
-    
-    await writeUsers(users);
-    
-    res.json({ 
-      success: true, 
-      message: `Zaimportowano ${imported} wpisów`,
-      imported 
-    });
-  } catch (err) {
-    console.error('Błąd importu Excel:', err);
-    res.status(500).json({ success: false, message: 'Błąd przetwarzania pliku Excel: ' + err.message });
   }
 });
 

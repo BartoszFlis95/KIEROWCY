@@ -23,14 +23,18 @@ app.use(express.static('public'));
 
 // Helper: read/write users
 async function readUsers() {
-    try {
-        const data = await fs.readFile(DATA_FILE, 'utf8');
-        return JSON.parse(data || '[]');
-    } catch (err) {
-        if (err.code === 'ENOENT') return [];
-        console.error('Błąd odczytu użytkowników:', err);
-        return [];
+  try {
+    const data = await fs.readFile(DATA_FILE, 'utf8');
+    console.log('Dane w users.json:', data); // <<< Dodaj to
+    const users = JSON.parse(data || '[]');
+    return users;
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      return [];
     }
+    console.error('Błąd odczytu użytkowników:', err);
+    return [];
+  }
 }
 
 async function writeUsers(users) {
@@ -38,12 +42,14 @@ async function writeUsers(users) {
         const dir = path.dirname(DATA_FILE);
         await fs.mkdir(dir, { recursive: true });
         await fs.writeFile(DATA_FILE, JSON.stringify(users, null, 2), 'utf8');
+        console.log(`Zapisano ${users.length} użytkowników do ${DATA_FILE}`);
         return true;
     } catch (err) {
         console.error('Błąd zapisu użytkowników:', err);
         return false;
     }
 }
+
 
 // Auth middleware
 function authenticateToken(req, res, next) {

@@ -44,37 +44,26 @@
                     <button id="back-czas-pracy" class="btn-back">← Powrót</button>
                     <h2>Czas Pracy</h2>
                 </div>
-                <button id="add-czas-pracy-btn" class="btn-primary-small">+ Dodaj</button>
             </div>
 
-            <div id="czas-pracy-form-container" class="form-container" style="display: none;">
-                <form id="czas-pracy-form" class="data-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="czas-data">Data *</label>
-                            <input type="date" id="czas-data" name="data" required>
+            <div class="upload-section">
+                <div class="upload-container">
+                    <input type="file" id="excel-file-input" accept=".xlsx,.xls" style="display: none;">
+                    <label for="excel-file-input" class="upload-label">
+                        <div class="upload-icon">📊</div>
+                        <div class="upload-text">
+                            <strong>Wgraj plik Excel</strong>
+                            <span>Kliknij, aby wybrać plik .xlsx lub .xls</span>
                         </div>
-                        <div class="form-group">
-                            <label for="czas-start">Rozpoczęcie *</label>
-                            <input type="time" id="czas-start" name="start" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="czas-koniec">Zakończenie *</label>
-                            <input type="time" id="czas-koniec" name="koniec" required>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="czas-opis">Opis</label>
-                        <textarea id="czas-opis" name="opis" rows="3"></textarea>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn-primary">Zapisz</button>
-                        <button type="button" class="btn-secondary" id="cancel-czas-pracy">Anuluj</button>
-                    </div>
-                </form>
+                    </label>
+                    <div id="file-name" class="file-name" style="display: none;"></div>
+                    <button id="upload-excel-btn" class="btn-primary" style="display: none; margin-top: 15px;">
+                        Przetwórz plik
+                    </button>
+                </div>
             </div>
 
-            <div id="czas-pracy-list" class="data-list">
+            <div id="czas-pracy-list" class="data-list" style="margin-top: 30px;">
                 <div class="loading">Ładowanie...</div>
             </div>
         </div>
@@ -134,13 +123,8 @@
                     <button id="back-plan" class="btn-back">← Powrót</button>
                     <h2>Plan</h2>
                 </div>
-                <div style="display: flex; gap: 10px;">
-                    <button id="upload-excel-btn" class="btn-excel">📊 Wgraj Excel</button>
-                    <button id="add-plan-btn" class="btn-primary-small">+ Dodaj</button>
-                </div>
+                <button id="add-plan-btn" class="btn-primary-small">+ Dodaj</button>
             </div>
-
-            <input type="file" id="excel-file-input" accept=".xlsx,.xls,.csv" style="display: none;">
 
             <div id="plan-form-container" class="form-container" style="display: none;">
                 <form id="plan-form" class="data-form">
@@ -180,7 +164,6 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="dashboard.js"></script>
 </body>
 </html>

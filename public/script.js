@@ -17,7 +17,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
 
     try {
         // Poprawne przypisanie odpowiedzi do zmiennej
-        const response = await fetch('https://kierowcy2.onrender.com/api/register', {
+        const response = await fetch('https://kierowcy1.onrender.com/api/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

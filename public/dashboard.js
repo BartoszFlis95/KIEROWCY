@@ -163,9 +163,6 @@ async function initDashboard() {
     // Obsługa formularzy
     setupForms();
     
-    // Obsługa wgrywania Excel
-    setupExcelUpload();
-    
     // Załaduj statystyki dla kafelków
     loadTileCounts();
 }
@@ -237,27 +234,27 @@ async function loadTileCounts() {
 
 // Obsługa formularzy
 function setupForms() {
-    // Czas pracy
-    document.getElementById('add-czas-pracy-btn').addEventListener('click', () => {
-        document.getElementById('czas-pracy-form-container').style.display = 'block';
-        document.getElementById('czas-pracy-form').reset();
-        document.getElementById('czas-data').valueAsDate = new Date();
+    // Wgrywanie pliku Excel dla czasu pracy
+    const fileInput = document.getElementById('excel-file-input');
+    const uploadBtn = document.getElementById('upload-excel-btn');
+    const fileNameDiv = document.getElementById('file-name');
+    
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            fileNameDiv.textContent = `Wybrany plik: ${file.name}`;
+            fileNameDiv.style.display = 'block';
+            uploadBtn.style.display = 'block';
+        }
     });
     
-    document.getElementById('cancel-czas-pracy').addEventListener('click', () => {
-        document.getElementById('czas-pracy-form-container').style.display = 'none';
-    });
-    
-    document.getElementById('czas-pracy-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = {
-            data: document.getElementById('czas-data').value,
-            start: document.getElementById('czas-start').value,
-            koniec: document.getElementById('czas-koniec').value,
-            opis: document.getElementById('czas-opis').value
-        };
-        
-        await saveCzasPracy(formData);
+    uploadBtn.addEventListener('click', async () => {
+        const file = fileInput.files[0];
+        if (!file) {
+            showMessage('Wybierz plik Excel', 'error');
+            return;
+        }
+        await uploadExcelFile(file);
     });
     
     // Urlopy
@@ -307,25 +304,36 @@ function setupForms() {
     });
 }
 
-// Funkcje do zapisu danych
-async function saveCzasPracy(data) {
+// Funkcja do wgrywania pliku Excel
+async function uploadExcelFile(file) {
     try {
-        const result = await fetchWithAuth(`${API_BASE}/czas-pracy`, {
+        const formData = new FormData();
+        formData.append('excel', file);
+        
+        const token = getToken();
+        const response = await fetch(`${API_BASE}/czas-pracy/upload`, {
             method: 'POST',
-            body: JSON.stringify(data)
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
         });
         
-        if (result && result.success) {
-            document.getElementById('czas-pracy-form-container').style.display = 'none';
-            showMessage('Czas pracy został zapisany pomyślnie!', 'success');
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage(`Pomyślnie zaimportowano ${result.imported || 0} wpisów czasu pracy!`, 'success');
+            document.getElementById('excel-file-input').value = '';
+            document.getElementById('file-name').style.display = 'none';
+            document.getElementById('upload-excel-btn').style.display = 'none';
             loadCzasPracy();
             loadTileCounts();
         } else {
-            showMessage(result?.message || 'Błąd zapisu', 'error');
+            showMessage(result.message || 'Błąd importu pliku', 'error');
         }
     } catch (error) {
         console.error('Błąd:', error);
-        showMessage('Wystąpił błąd podczas zapisywania czasu pracy', 'error');
+        showMessage('Wystąpił błąd podczas wgrywania pliku', 'error');
     }
 }
 
@@ -453,244 +461,6 @@ async function loadPlan() {
         console.error('Błąd:', error);
         listDiv.innerHTML = '<div class="empty-state"><p>Błąd podczas ładowania danych</p></div>';
     }
-}
-
-// Obsługa wgrywania plików Excel
-let excelData = null;
-
-function setupExcelUpload() {
-    const fileInput = document.getElementById('excel-upload');
-    const previewContainer = document.getElementById('excel-preview-container');
-    const closeBtn = document.getElementById('close-excel-preview');
-    const cancelBtn = document.getElementById('cancel-excel-import');
-    const importBtn = document.getElementById('import-excel-data');
-    
-    fileInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        if (!file.name.match(/\.(xlsx|xls)$/)) {
-            showMessage('Proszę wybrać plik Excel (.xlsx lub .xls)', 'error');
-            return;
-        }
-        
-        try {
-            showMessage('Przetwarzanie pliku Excel...', 'success');
-            const data = await readExcelFile(file);
-            excelData = data;
-            displayExcelPreview(data);
-            previewContainer.style.display = 'block';
-        } catch (error) {
-            console.error('Błąd odczytu pliku Excel:', error);
-            showMessage('Błąd podczas odczytu pliku Excel. Sprawdź format pliku.', 'error');
-        }
-    });
-    
-    closeBtn?.addEventListener('click', () => {
-        previewContainer.style.display = 'none';
-        fileInput.value = '';
-        excelData = null;
-    });
-    
-    cancelBtn?.addEventListener('click', () => {
-        previewContainer.style.display = 'none';
-        fileInput.value = '';
-        excelData = null;
-    });
-    
-    importBtn?.addEventListener('click', async () => {
-        if (!excelData || excelData.length === 0) {
-            showMessage('Brak danych do importu', 'error');
-            return;
-        }
-        
-        await importExcelData(excelData);
-    });
-}
-
-// Funkcja do odczytu pliku Excel
-function readExcelFile(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        
-        reader.onload = (e) => {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                
-                // Pobierz pierwszą kartę
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-                
-                // Konwertuj na strukturę danych
-                const headers = jsonData[0] || [];
-                const rows = jsonData.slice(1).filter(row => row.some(cell => cell !== undefined && cell !== ''));
-                
-                const parsedData = rows.map(row => {
-                    const obj = {};
-                    headers.forEach((header, index) => {
-                        if (header) {
-                            obj[header] = row[index] || '';
-                        }
-                    });
-                    return obj;
-                });
-                
-                resolve(parsedData);
-            } catch (error) {
-                reject(error);
-            }
-        };
-        
-        reader.onerror = (error) => reject(error);
-        reader.readAsArrayBuffer(file);
-    });
-}
-
-// Funkcja do wyświetlania podglądu danych Excel
-function displayExcelPreview(data) {
-    const previewContent = document.getElementById('excel-preview-content');
-    
-    if (!data || data.length === 0) {
-        previewContent.innerHTML = '<p class="empty-state">Brak danych w pliku</p>';
-        return;
-    }
-    
-    // Pobierz nagłówki z pierwszego wiersza
-    const headers = Object.keys(data[0]);
-    
-    let html = `
-        <div class="excel-info">
-            <p><strong>Znaleziono ${data.length} wierszy danych</strong></p>
-        </div>
-        <div class="excel-table-wrapper">
-            <table class="excel-table">
-                <thead>
-                    <tr>
-                        ${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}
-                    </tr>
-                </thead>
-                <tbody>
-                    ${data.slice(0, 10).map(row => `
-                        <tr>
-                            ${headers.map(h => `<td>${escapeHtml(row[h] || '')}</td>`).join('')}
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-            ${data.length > 10 ? `<p class="excel-more">... i ${data.length - 10} więcej wierszy</p>` : ''}
-        </div>
-    `;
-    
-    previewContent.innerHTML = html;
-}
-
-// Funkcja do importu danych z Excel
-async function importExcelData(data) {
-    const previewContainer = document.getElementById('excel-preview-container');
-    let successCount = 0;
-    let errorCount = 0;
-    
-    showMessage('Importowanie danych...', 'success');
-    
-    for (const row of data) {
-        try {
-            // Mapowanie kolumn Excel na format API
-            // Zakładamy format: Data, Start, Koniec, Opis
-            const formData = {
-                data: formatExcelDate(row['Data'] || row['data'] || row['DATA']),
-                start: formatExcelTime(row['Start'] || row['start'] || row['Rozpoczęcie'] || row['rozpoczęcie']),
-                koniec: formatExcelTime(row['Koniec'] || row['koniec'] || row['Zakończenie'] || row['zakończenie']),
-                opis: row['Opis'] || row['opis'] || row['Uwagi'] || row['uwagi'] || ''
-            };
-            
-            // Walidacja
-            if (!formData.data || !formData.start || !formData.koniec) {
-                errorCount++;
-                continue;
-            }
-            
-            const result = await fetchWithAuth(`${API_BASE}/czas-pracy`, {
-                method: 'POST',
-                body: JSON.stringify(formData)
-            });
-            
-            if (result && result.success) {
-                successCount++;
-            } else {
-                errorCount++;
-            }
-        } catch (error) {
-            console.error('Błąd importu wiersza:', error);
-            errorCount++;
-        }
-    }
-    
-    previewContainer.style.display = 'none';
-    document.getElementById('excel-upload').value = '';
-    excelData = null;
-    
-    showMessage(`Zaimportowano ${successCount} wpisów${errorCount > 0 ? `, ${errorCount} błędów` : ''}`, successCount > 0 ? 'success' : 'error');
-    loadCzasPracy();
-    loadTileCounts();
-}
-
-// Funkcja do formatowania daty z Excel
-function formatExcelDate(value) {
-    if (!value) return '';
-    
-    // Jeśli to już string w formacie YYYY-MM-DD
-    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-        return value;
-    }
-    
-    // Jeśli to liczba (Excel date serial)
-    if (typeof value === 'number') {
-        const excelEpoch = new Date(1899, 11, 30);
-        const date = new Date(excelEpoch.getTime() + value * 24 * 60 * 60 * 1000);
-        return date.toISOString().split('T')[0];
-    }
-    
-    // Jeśli to obiekt Date
-    if (value instanceof Date) {
-        return value.toISOString().split('T')[0];
-    }
-    
-    // Spróbuj sparsować jako datę
-    const date = new Date(value);
-    if (!isNaN(date.getTime())) {
-        return date.toISOString().split('T')[0];
-    }
-    
-    return '';
-}
-
-// Funkcja do formatowania czasu z Excel
-function formatExcelTime(value) {
-    if (!value) return '';
-    
-    // Jeśli to już string w formacie HH:MM
-    if (typeof value === 'string' && /^\d{2}:\d{2}$/.test(value)) {
-        return value;
-    }
-    
-    // Jeśli to liczba (Excel time serial)
-    if (typeof value === 'number') {
-        const totalSeconds = Math.floor(value * 24 * 60 * 60);
-        const hours = Math.floor(totalSeconds / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
-        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-    }
-    
-    // Spróbuj sparsować jako czas
-    if (typeof value === 'string') {
-        const timeMatch = value.match(/(\d{1,2}):(\d{2})/);
-        if (timeMatch) {
-            return `${String(timeMatch[1]).padStart(2, '0')}:${timeMatch[2]}`;
-        }
-    }
-    
-    return value.toString();
 }
 
 // Uruchom dashboard po załadowaniu strony

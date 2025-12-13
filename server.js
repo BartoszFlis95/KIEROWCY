@@ -220,17 +220,10 @@ function generateEmailHTML(pseudonim, dane) {
 
 // Helper: read/write users
 function readUsers() {
-  // Sprawdź ścieżkę Render, jeśli nie istnieje, użyj lokalnej
-  const renderPath = '/opt/render/project/src/data/users.json';
-  const localPath = './data/users.json';
-  const filePath = fs.existsSync(renderPath) ? renderPath : localPath;
-  
-  console.log('Plik istnieje?', fs.existsSync(filePath));
-  
+  const path = '/opt/render/project/src/data/users.json';
   try {
-    const users = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    const users = JSON.parse(fs.readFileSync(path, 'utf-8'));
     console.log('Liczba użytkowników:', users.length);
-    users.forEach(u => console.log(u.login, u.email, u.role));
     return users;
   } catch (err) {
     if (err.code === 'ENOENT') {

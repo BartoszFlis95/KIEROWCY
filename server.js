@@ -321,9 +321,7 @@ app.post('/api/login', async (req, res) => {
     const users = await readUsers();
     
     // Znajdź użytkownika (sprawdź zarówno login jak i email) - odpowiednik $or w MongoDB
-    const user = users.find(u => 
-      u.email === loginOrEmail || u.login === loginOrEmail
-    );
+    const user = users.find(u => (u.login && u.login === loginOrEmail) || u.email === loginOrEmail);
     
     if (!user) {
       return res.status(401).json({ success: false, message: 'Niepoprawny login lub email' });

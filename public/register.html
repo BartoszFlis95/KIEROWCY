@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rejestracja - Deneeu</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <h1>Rejestracja</h1>
+        <p>Utwórz nowe konto kierowcy</p>
+
+        <div id="register-message" class="message"></div>
+
+        <form id="register-form">
+            <div class="form-group">
+                <label for="imie">Imię *</label>
+                <input type="text" id="imie" name="imie" required>
+            </div>
+
+            <div class="form-group">
+                <label for="nazwisko">Nazwisko *</label>
+                <input type="text" id="nazwisko" name="nazwisko" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email *</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="haslo">Hasło *</label>
+                <input type="password" id="haslo" name="haslo" required>
+            </div>
+
+            <button type="submit" class="btn-primary">Zarejestruj się</button>
+        </form>
+
+        <p class="auth-link">Masz już konto? <a href="login.html">Zaloguj się</a></p>
+    </div>
+
+    <script src="register.js"></script>
+</body>
+</html>

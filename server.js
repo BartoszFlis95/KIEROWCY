@@ -4,7 +4,8 @@ const API_URL = 'https://www.deneeu.pl';
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const fs = require('fs').promises;
+const fs = require('fs');
+const fsPromises = require('fs').promises;
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -218,13 +219,17 @@ function generateEmailHTML(pseudonim, dane) {
 }
 
 // Helper: read/write users
-async function readUsers() {
+function readUsers() {
   try {
-    const data = await fs.readFile(DATA_FILE, 'utf8');
-    const users = JSON.parse(data || '[]');
+    const users = JSON.parse(fs.readFileSync('./data/users.json', 'utf-8'));
+    console.log('Liczba użytkowników:', users.length);
+    users.forEach(u => console.log(u.login, u.email, u.role));
     return users;
   } catch (err) {
-    if (err.code === 'ENOENT') return [];
+    if (err.code === 'ENOENT') {
+      console.log('Plik nie istnieje, zwracam pustą tablicę');
+      return [];
+    }
     console.error('Błąd odczytu użytkowników:', err);
     return [];
   }
@@ -245,7 +250,7 @@ async function writeUsers(users) {
 
 // Helper: aktualizuj użytkownika
 async function updateUser(userId, updateFn) {
-  const users = await readUsers();
+  const users = readUsers();
   const idx = users.findIndex(u => u.id === userId);
   if (idx === -1) return null;
   updateFn(users[idx]);
@@ -280,7 +285,7 @@ app.post('/api/register', async (req, res) => {
     if (!emailRegex.test(email)) return res.status(400).json({ success: false, message: 'Nieprawidłowy email' });
     if (haslo.length < 6) return res.status(400).json({ success: false, message: 'Hasło min 6 znaków' });
 
-    const users = await readUsers();
+    const users = readUsers();
     if (users.some(u => u.email === email)) {
       return res.status(400).json({ success: false, message: 'Użytkownik już istnieje' });
     }
@@ -324,7 +329,7 @@ app.post('/api/login', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Login/Email i hasło wymagane' });
     }
 
-    const users = await readUsers();
+    const users = readUsers();
     
     // Znajdź użytkownika (sprawdź zarówno login jak i email) - ignoruj wielkość liter i spacje
     const input = loginOrEmail.toLowerCase();
@@ -386,7 +391,7 @@ function authenticateToken(req, res, next) {
 // protected endpoints
 app.get('/api/me', authenticateToken, async (req, res) => {
   try {
-    const users = await readUsers();
+    const users = readUsers();
     const user = users.find(u => u.id === req.user.id);
     if (!user) return res.status(404).json({ success: false, message: 'Użytkownik nie znaleziony' });
     const { haslo, ...userWithoutPassword } = user;
@@ -399,7 +404,7 @@ app.get('/api/me', authenticateToken, async (req, res) => {
 
 app.get('/api/users', async (req, res) => {
   try {
-    const users = await readUsers();
+    const users = readUsers();
     const u = users.map(({ haslo, ...rest }) => rest);
     res.json({ success: true, users: u });
   } catch (err) {
@@ -427,7 +432,7 @@ app.post('/api/czas-pracy', authenticateToken, async (req, res) => {
 });
 app.get('/api/czas-pracy', authenticateToken, async (req, res) => {
   try {
-    const users = await readUsers();
+    const users = readUsers();
     const user = users.find(u => u.id === req.user.id);
     if (!user) return res.status(404).json({ success: false, message: 'Użytkownik nie znaleziony' });
     res.json({ success: true, czasPracy: user.czasPracy || [] });
@@ -455,7 +460,7 @@ app.post('/api/urlopy', authenticateToken, async (req, res) => {
 });
 app.get('/api/urlopy', authenticateToken, async (req, res) => {
   try {
-    const users = await readUsers();
+    const users = readUsers();
     const user = users.find(u => u.id === req.user.id);
     if (!user) return res.status(404).json({ success: false, message: 'Użytkownik nie znaleziony' });
     res.json({ success: true, urlopy: user.urlopy || [] });
@@ -481,7 +486,7 @@ app.post('/api/plan', authenticateToken, async (req, res) => {
 });
 app.get('/api/plan', authenticateToken, async (req, res) => {
   try {
-    const users = await readUsers();
+    const users = readUsers();
     const user = users.find(u => u.id === req.user.id);
     if (!user) return res.status(404).json({ success: false, message: 'Użytkownik nie znaleziony' });
     
@@ -642,7 +647,7 @@ app.post('/api/send-email', authenticateToken, upload.single('file'), async (req
       return res.status(400).json({ success: false, message: 'Brak danych kierowców do wysłania' });
     }
     
-    const users = await readUsers();
+    const users = readUsers();
     
     // Najpierw znajdź użytkowników dla wszystkich kierowców
     const driversWithEmails = [];

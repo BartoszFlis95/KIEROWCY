@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: kierowcy-app
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SMTP_HOST
+        value: serwer2524780.home.pl
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_SECURE
+        value: false
+      - key: SMTP_USER
+        value: test@deneeu.pl
+      - key: SMTP_PASS
+        sync: false  # Ustaw ręcznie w panelu Render
+

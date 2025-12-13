@@ -14,7 +14,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'zmien-to-w-produkcji';
 
 // CORS – frontend: www.deneeu.pl
 app.use(cors({
-  origin: 'https://www.deneeu.pl',
+  origin: ['https://www.deneeu.pl', 'http://localhost:3000'], // dozwolone frontendowe domeny
   credentials: true
 }));
 

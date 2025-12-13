@@ -13,35 +13,12 @@ const multer = require('multer');
 const XLSX = require('xlsx');
 
 const app = express();
-// Render automatycznie ustawia PORT, w lokalnym środowisku użyj 3000
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 const DATA_FILE = path.join(__dirname, 'data', 'users.json');
 const JWT_SECRET = process.env.JWT_SECRET || 'zmien-to-w-produkcji';
 
 // Konfiguracja CORS - pozwól na żądania z różnych źródeł
-// W produkcji: www.deneeu.pl, w rozwoju: localhost
-const allowedOrigins = [
-  'https://www.deneeu.pl',
-  'https://deneeu.pl',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000'
-];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    // Pozwól na żądania bez origin (np. Postman, curl) lub z dozwolonych źródeł
-    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-    } else {
-      // W produkcji pozwól wszystkim (można zmienić na callback(new Error('Not allowed')))
-      callback(null, true);
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['Content-Type', 'Authorization'],
-  credentials: false
-}));
+app.use(cors({ origin: '*' })); // lub podaj dokładną domenę frontendu
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
@@ -1043,22 +1020,7 @@ async function initializeDataFile() {
 // Inicjalizuj przed startem serwera
 initializeDataFile().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ Serwer działa na porcie ${PORT}`);
-    console.log(`📁 Plik danych: ${DATA_FILE}`);
-    console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`🌐 Lokalny dostęp: http://localhost:${PORT}`);
-      console.log(`🌐 API Base: http://localhost:${PORT}/api`);
-    } else {
-      console.log(`🌐 Production mode - dostęp przez www.deneeu.pl`);
-      console.log(`🌐 API Base: https://www.deneeu.pl/api`);
-    }
-    console.log(`📧 Konfiguracja SMTP: ${transporter ? 'Gotowa' : 'Nie ustawiona'}`);
-    if (transporter) {
-      console.log(`📧 SMTP Host: ${emailConfig.host}:${emailConfig.port} (secure: ${emailConfig.secure})`);
-    }
-    console.log(`💚 Health check: /health`);
-    console.log(`🔒 CORS: Dozwolone originy: ${allowedOrigins.join(', ')}`);
+    console.log(`Serwer działa na porcie ${PORT}`);
   });
 }).catch(err => {
   console.error('❌ Błąd inicjalizacji:', err);

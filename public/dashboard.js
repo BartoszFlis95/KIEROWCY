@@ -7,24 +7,18 @@ function getToken() {
 }
 
 // Funkcja do sprawdzania autoryzacji
-function checkAuth() {
-    const token = localStorage.getItem('token');
-    const user = JSON.parse(localStorage.getItem('user'));
+if (data.success) {
+    // Zapis tokenu i użytkownika
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
 
-    if (!token) {
-        console.warn('Brak tokena, przekierowanie do logowania');
-        window.location.href = 'login.html';
-        return false;
-    }
+    displayMessage(data.message, 'success');
 
-    if (!user || user.role !== 'driver') {
-        console.warn('Użytkownik nie jest kierowcą, przekierowanie do logowania');
-        window.location.href = 'login.html';
-        return false;
-    }
-
-    return true; // Wszystko OK
+    setTimeout(() => {
+        window.location.href = 'dashboard.html';
+    }, 1500);
 }
+
 
 // Zmienna do przechowywania aktualnego użytkownika
 let currentUser = null;

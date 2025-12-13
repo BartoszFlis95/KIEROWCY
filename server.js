@@ -27,11 +27,6 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 });
 
-// Konfiguracja multer do przetwarzania plików
-const upload = multer({ 
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
-});
 
 // helper: read/write users
 async function readUsers() {

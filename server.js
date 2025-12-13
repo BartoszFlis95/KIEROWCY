@@ -322,22 +322,19 @@ app.post('/api/login', async (req, res) => {
     const users = await readUsers();
     
     // Znajdź użytkownika (sprawdź zarówno login jak i email) - ignoruj wielkość liter i spacje
-    const user = users.find(u => {
-      const userLogin = (u.login || '').trim().toLowerCase();
-      const userEmail = (u.email || '').trim().toLowerCase();
-      return userLogin === loginOrEmail || userEmail === loginOrEmail;
-    });
+    const input = loginOrEmail.trim().toLowerCase();
+    const user = users.find(u =>
+      (u.login && u.login.toLowerCase() === input) ||
+      (u.email && u.email.toLowerCase() === input)
+    );
     
     if (!user) {
       return res.status(401).json({ success: false, message: 'Niepoprawny login lub email' });
     }
 
     // Sprawdź hasło
-    const ok = await bcrypt.compare(haslo, user.haslo);
-    
-    if (!ok) {
-      return res.status(401).json({ success: false, message: 'Niepoprawny login lub email' });
-    }
+    const match = await bcrypt.compare(haslo, user.haslo);
+    if (!match) return res.status(401).json({ success: false, message: 'Niepoprawny login lub email' });
 
     // Sprawdzenie roli
     const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '24h' });

@@ -13,17 +13,34 @@ const multer = require('multer');
 const XLSX = require('xlsx');
 
 const app = express();
+// Render automatycznie ustawia PORT, w lokalnym środowisku użyj 3000
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, 'data', 'users.json');
 const JWT_SECRET = process.env.JWT_SECRET || 'zmien-to-w-produkcji';
 
 // Konfiguracja CORS - pozwól na żądania z różnych źródeł
+// W produkcji: www.deneeu.pl, w rozwoju: localhost
+const allowedOrigins = [
+  'https://www.deneeu.pl',
+  'https://deneeu.pl',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+];
+
 app.use(cors({
-  origin: '*',
+  origin: function (origin, callback) {
+    // Pozwól na żądania bez origin (np. Postman, curl) lub z dozwolonych źródeł
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      // W produkcji pozwól wszystkim (można zmienić na callback(new Error('Not allowed')))
+      callback(null, true);
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   exposedHeaders: ['Content-Type', 'Authorization'],
-  credentials: false // false dla origin: '*', true wymaga konkretnego origin
+  credentials: false
 }));
 app.use(bodyParser.json());
 app.use(express.static('public'));
@@ -66,12 +83,12 @@ const upload = multer({
 
 // Konfiguracja Nodemailer
 // Domyślnie: serwer2524780.home.pl (test@deneeu.pl)
-// Port: 587 (bez SSL) lub 465 (z SSL)
+// Port: 465 (z SSL) - domyślnie, 587 (bez SSL) jako alternatywa
 // Można zmienić przez zmienne środowiskowe
 const emailConfig = {
   host: process.env.SMTP_HOST || 'serwer2524780.home.pl',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_SECURE === 'true', // true dla 465, false dla 587
+  port: parseInt(process.env.SMTP_PORT || '465'),
+  secure: process.env.SMTP_SECURE !== 'false', // true dla 465 (domyślnie), false dla 587
   auth: {
     user: process.env.SMTP_USER || 'test@deneeu.pl',
     pass: process.env.SMTP_PASS || 'Bumszakalaka32#'
@@ -87,7 +104,7 @@ if (smtpUser && smtpPass) {
   transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || emailConfig.host,
     port: Number(process.env.SMTP_PORT || emailConfig.port),
-    secure: process.env.SMTP_SECURE === 'true',
+    secure: process.env.SMTP_SECURE !== 'false', // true dla 465, false dla 587
     auth: {
       user: process.env.SMTP_USER || emailConfig.auth.user,
       pass: process.env.SMTP_PASS || emailConfig.auth.pass
@@ -250,6 +267,16 @@ async function updateUser(userId, updateFn) {
   await writeUsers(users);
   return users[idx];
 }
+
+// Health check endpoint dla Render
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    port: PORT,
+    smtp: transporter ? 'configured' : 'not configured'
+  });
+});
 
 // Pages
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
@@ -1010,12 +1037,19 @@ initializeDataFile().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Serwer działa na porcie ${PORT}`);
     console.log(`📁 Plik danych: ${DATA_FILE}`);
+    console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
     if (process.env.NODE_ENV !== 'production') {
       console.log(`🌐 Lokalny dostęp: http://localhost:${PORT}`);
+    } else {
+      console.log(`🌐 Production mode - dostęp przez Render`);
     }
     console.log(`📧 Konfiguracja SMTP: ${transporter ? 'Gotowa' : 'Nie ustawiona'}`);
+    if (transporter) {
+      console.log(`📧 SMTP Host: ${emailConfig.host}:${emailConfig.port} (secure: ${emailConfig.secure})`);
+    }
+    console.log(`💚 Health check: http://localhost:${PORT}/health`);
   });
 }).catch(err => {
-  console.error('Błąd inicjalizacji:', err);
+  console.error('❌ Błąd inicjalizacji:', err);
   process.exit(1);
 });

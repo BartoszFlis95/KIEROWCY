@@ -7,16 +7,14 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 3000
       - key: JWT_SECRET
         generateValue: true
       - key: SMTP_HOST
         value: serwer2524780.home.pl
       - key: SMTP_PORT
-        value: 587
+        value: 465
       - key: SMTP_SECURE
-        value: false
+        value: true
       - key: SMTP_USER
         value: test@deneeu.pl
       - key: SMTP_PASS
